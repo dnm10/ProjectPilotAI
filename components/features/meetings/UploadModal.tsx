@@ -14,6 +14,7 @@ import {
   Sparkles,
   Music,
 } from 'lucide-react'
+import { toast } from '@/lib/toast'
 
 export default function UploadModal() {
   const { isUploadModalOpen, closeUploadModal } = useMeetingModalStore()
@@ -129,9 +130,12 @@ export default function UploadModal() {
       const result = await uploadRecording(formData)
       setUploadPhase('done')
       setSuccessMeetingId(result.meeting.id)
+      toast.success('Meeting recording uploaded and transcribed successfully', 'Whisper AI Ingestion')
     } catch (err: unknown) {
       setUploadPhase('idle')
-      setError(err instanceof Error ? err.message : 'Failed to ingest audio recording.')
+      const msg = err instanceof Error ? err.message : 'Failed to ingest audio recording.'
+      setError(msg)
+      toast.error(msg, 'Upload Failed')
     }
   }
 

@@ -5,7 +5,9 @@ import { useMeetings } from '@/hooks/useMeetings'
 import { useMeetingModalStore } from '@/store/useMeetingModalStore'
 import MeetingCard from '@/components/features/meetings/MeetingCard'
 import UploadModal from '@/components/features/meetings/UploadModal'
-import { Video, Upload, CheckCircle2, AlertTriangle, Sparkles, Loader2 } from 'lucide-react'
+import MeetingsSkeleton from '@/components/features/meetings/MeetingsSkeleton'
+import EmptyState from '@/components/ui/EmptyState'
+import { Video, Upload, CheckCircle2, AlertTriangle, Sparkles, Plus } from 'lucide-react'
 
 export default function MeetingsPage() {
   const { data: meetings = [], isLoading, error } = useMeetings()
@@ -100,16 +102,22 @@ export default function MeetingsPage() {
         </div>
       </div>
 
-      {/* Meetings Grid */}
+      {/* Meetings Grid / Skeleton / Empty State */}
       {isLoading ? (
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] p-12 text-center text-sm text-[#64748B] flex flex-col items-center justify-center gap-2">
-          <Loader2 className="w-6 h-6 text-[#4F46E5] animate-spin" />
-          <span>Loading ingested meetings...</span>
-        </div>
+        <MeetingsSkeleton />
       ) : error ? (
         <div className="bg-red-50 rounded-2xl border border-red-200 p-8 text-center text-sm text-red-700">
           Failed to load meetings. Please try refreshing.
         </div>
+      ) : meetings.length === 0 ? (
+        <EmptyState
+          icon={Video}
+          title="No meetings uploaded yet"
+          description="Upload an audio recording of your sprint planning, standup, or architecture review to automatically extract action items and match Git commits."
+          actionLabel="Upload First Recording"
+          onAction={openUploadModal}
+          actionIcon={Plus}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {meetings.map((m) => (

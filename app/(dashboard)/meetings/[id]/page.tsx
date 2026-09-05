@@ -2,43 +2,36 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useMeeting } from '@/hooks/useMeetings'
 import TranscriptViewer from '@/components/features/meetings/TranscriptViewer'
 import ActionItemsChecklist from '@/components/features/meetings/ActionItemsChecklist'
-import { ArrowLeft, Video, Clock, Users, Loader2, Sparkles, AlertCircle } from 'lucide-react'
+import MeetingDetailSkeleton from '@/components/features/meetings/MeetingDetailSkeleton'
+import EmptyState from '@/components/ui/EmptyState'
+import { ArrowLeft, Video, Clock, Users, Sparkles } from 'lucide-react'
 
 export default function MeetingDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string) || 'meet-1'
 
   const { data: meeting, isLoading, error } = useMeeting(id)
 
   if (isLoading) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-sm text-[#64748B]">
-        <Loader2 className="w-8 h-8 text-[#4F46E5] animate-spin" />
-        <p>Loading meeting transcript &amp; action items...</p>
-      </div>
-    )
+    return <MeetingDetailSkeleton />
   }
 
   if (error || !meeting) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center space-y-3">
-        <AlertCircle className="w-8 h-8 text-red-600 mx-auto" />
-        <h2 className="text-[16px] font-bold text-[#0F172A]">Meeting Not Found</h2>
-        <p className="text-[13px] text-[#64748B]">
-          Could not locate the requested meeting recording or transcript.
-        </p>
-        <Link
-          href="/meetings"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4F46E5] hover:text-[#4338CA]"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Meetings</span>
-        </Link>
-      </div>
+      <EmptyState
+        icon={Video}
+        title="Meeting not found"
+        description="Could not locate the requested meeting recording or transcript. It may have been removed or the URL is invalid."
+        actionLabel="Back to Meetings"
+        onAction={() => router.push('/meetings')}
+        actionIcon={ArrowLeft}
+        className="my-12"
+      />
     )
   }
 

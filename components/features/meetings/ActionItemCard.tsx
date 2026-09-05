@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Tag,
 } from 'lucide-react'
+import { toast } from '@/lib/toast'
 
 interface ActionItemCardProps {
   item: ActionItem
@@ -30,6 +31,14 @@ export default function ActionItemCard({ item, meetingId }: ActionItemCardProps)
       status: newStatus,
     })
     setDropdownOpen(false)
+
+    if (newStatus === 'verified_done') {
+      toast.success('Action item marked as verified done', 'Closed-Loop Verification')
+    } else if (newStatus === 'flagged_incomplete') {
+      toast.error('Action item flagged as incomplete', 'Commit Follow-Through')
+    } else {
+      toast.info('Action item status set to pending', 'Status Updated')
+    }
   }
 
   // Get status badge styling based on strict rules:
