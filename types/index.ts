@@ -78,6 +78,19 @@ export interface ActionItem {
   owner_initials: string
   due_date: string
   status: ActionItemStatus
+  ticket_id?: string
+  commit_hash?: string
+  commit_message?: string
+  verification_note?: string
+}
+
+export interface TranscriptSegment {
+  id: string
+  timestamp: string
+  speaker: string
+  speaker_initials?: string
+  text: string
+  action_item_id?: string
 }
 
 export interface Meeting {
@@ -86,8 +99,12 @@ export interface Meeting {
   date: string
   duration: string
   transcript: string
+  transcript_segments?: TranscriptSegment[]
   action_items_count: number
   unverified_count: number
+  confidence_score?: number
+  audio_filename?: string
+  participants?: string[]
   action_items?: ActionItem[]
 }
 

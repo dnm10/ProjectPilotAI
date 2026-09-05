@@ -3,8 +3,9 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { verifyMockLogin } from '@/lib/mockAuth'
+import { registerMockAccount } from '@/lib/mockAuth'
 import {
+  User,
   Mail,
   Lock,
   Eye,
@@ -13,6 +14,7 @@ import {
   TrendingUp,
   CheckSquare,
   Users,
+  CheckCircle2,
 } from 'lucide-react'
 
 // Brand 3-Bar Chart Logo Icon
@@ -38,19 +40,6 @@ function BrandBarLogo({ className = 'w-6 h-6', light = false }: { className?: st
   )
 }
 
-// GitHub Icon
-function GitHubIcon({ className = 'w-5 h-5' }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fillRule="evenodd"
-        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-        clipRule="evenodd"
-      />
-    </svg>
-  )
-}
-
 // Mountain Path Illustration Component
 function MountainPathIllustration() {
   return (
@@ -62,24 +51,24 @@ function MountainPathIllustration() {
         className="w-full h-full object-cover"
       >
         <defs>
-          <linearGradient id="skyGlowLogin" x1="180" y1="0" x2="180" y2="230" gradientUnits="userSpaceOnUse">
+          <linearGradient id="skyGlowSignup" x1="180" y1="0" x2="180" y2="230" gradientUnits="userSpaceOnUse">
             <stop stopColor="#38BDF8" stopOpacity="0.15" />
             <stop offset="0.6" stopColor="#1E3A8A" stopOpacity="0.05" />
             <stop offset="1" stopColor="#0F172A" stopOpacity="0" />
           </linearGradient>
-          <linearGradient id="mountainBackLogin" x1="180" y1="40" x2="180" y2="230" gradientUnits="userSpaceOnUse">
+          <linearGradient id="mountainBackSignup" x1="180" y1="40" x2="180" y2="230" gradientUnits="userSpaceOnUse">
             <stop stopColor="#1E3A6C" />
             <stop offset="1" stopColor="#0F1F3D" />
           </linearGradient>
-          <linearGradient id="mountainMidLogin" x1="240" y1="50" x2="240" y2="230" gradientUnits="userSpaceOnUse">
+          <linearGradient id="mountainMidSignup" x1="240" y1="50" x2="240" y2="230" gradientUnits="userSpaceOnUse">
             <stop stopColor="#18315B" />
             <stop offset="1" stopColor="#0A152A" />
           </linearGradient>
-          <linearGradient id="mountainFrontLogin" x1="180" y1="90" x2="180" y2="230" gradientUnits="userSpaceOnUse">
+          <linearGradient id="mountainFrontSignup" x1="180" y1="90" x2="180" y2="230" gradientUnits="userSpaceOnUse">
             <stop stopColor="#132749" />
             <stop offset="1" stopColor="#070E1C" />
           </linearGradient>
-          <linearGradient id="pathGradientLogin" x1="280" y1="65" x2="160" y2="230" gradientUnits="userSpaceOnUse">
+          <linearGradient id="pathGradientSignup" x1="280" y1="65" x2="160" y2="230" gradientUnits="userSpaceOnUse">
             <stop stopColor="#93C5FD" stopOpacity="0.9" />
             <stop offset="0.4" stopColor="#60A5FA" stopOpacity="0.7" />
             <stop offset="1" stopColor="#3B82F6" stopOpacity="0.4" />
@@ -87,7 +76,7 @@ function MountainPathIllustration() {
         </defs>
 
         {/* Ambient Glow */}
-        <circle cx="280" cy="70" r="90" fill="url(#skyGlowLogin)" />
+        <circle cx="280" cy="70" r="90" fill="url(#skyGlowSignup)" />
 
         {/* Distant Stars */}
         <circle cx="210" cy="40" r="1.5" fill="#E0F2FE" opacity="0.8" />
@@ -99,25 +88,25 @@ function MountainPathIllustration() {
         {/* Background Mountain Layer */}
         <path
           d="M100 230L200 90L290 180L360 110V230H100Z"
-          fill="url(#mountainBackLogin)"
+          fill="url(#mountainBackSignup)"
           opacity="0.7"
         />
 
         {/* Mid-ground Mountain Peak (Summit with Flag) */}
         <path
           d="M130 230L280 65L360 150V230H130Z"
-          fill="url(#mountainMidLogin)"
+          fill="url(#mountainMidSignup)"
         />
 
         {/* Foreground Mountain Ridges */}
         <path
           d="M0 230L90 140L210 230H0Z"
-          fill="url(#mountainFrontLogin)"
+          fill="url(#mountainFrontSignup)"
           opacity="0.95"
         />
         <path
           d="M210 230L310 135L360 180V230H210Z"
-          fill="url(#mountainFrontLogin)"
+          fill="url(#mountainFrontSignup)"
         />
 
         {/* Flag Pole and Flag at Summit */}
@@ -130,7 +119,7 @@ function MountainPathIllustration() {
         {/* Winding Blue Path Leading to Summit */}
         <path
           d="M150 230C180 215 210 195 215 175C220 155 190 145 220 120C245 100 265 85 280 66"
-          stroke="url(#pathGradientLogin)"
+          stroke="url(#pathGradientSignup)"
           strokeWidth="6"
           strokeLinecap="round"
           fill="none"
@@ -149,23 +138,47 @@ function MountainPathIllustration() {
   )
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter()
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [infoNotice, setInfoNotice] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  // Frontend-Only Sign In Verification
+  // Password Requirement Checks (Checked upon submit)
+  const validatePasswordStrength = (pwd: string) => {
+    const hasMinLength = pwd.length >= 8
+    const hasUppercase = /[A-Z]/.test(pwd)
+    const hasLowercase = /[a-z]/.test(pwd)
+    const hasNumber = /[0-9]/.test(pwd)
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)
+
+    return (
+      hasMinLength &&
+      hasUppercase &&
+      hasLowercase &&
+      hasNumber &&
+      hasSpecialChar
+    )
+  }
+
+  // Frontend-Only Registration Handler
   // TODO: Replace temporary frontend authentication with real backend/Supabase authentication.
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
-    setInfoNotice(null)
+    setSuccessMessage(null)
+
+    if (!name.trim()) {
+      setErrorMessage('Please enter your full name.')
+      return
+    }
 
     if (!email.trim()) {
       setErrorMessage('Please enter your email address.')
@@ -179,36 +192,42 @@ export default function LoginPage() {
     }
 
     if (!password) {
-      setErrorMessage('Please enter your password.')
+      setErrorMessage('Please enter a password.')
       return
     }
 
-    // Verify against temporary mock accounts stored locally
-    const result = verifyMockLogin(email, password)
+    if (!validatePasswordStrength(password)) {
+      setErrorMessage(
+        'Password must be at least 8 characters and include a number and special character.'
+      )
+      return
+    }
+
+    if (!confirmPassword) {
+      setErrorMessage('Please confirm your password.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match.')
+      return
+    }
+
+    // Register into temporary mock account storage
+    const result = registerMockAccount(name, email, password)
 
     if (!result.success) {
-      setErrorMessage(result.error || 'Authentication failed.')
+      setErrorMessage(result.error || 'Registration failed. Please try again.')
       return
     }
 
     setIsLoading(true)
+    setSuccessMessage('Account created successfully. Please sign in.')
 
-    // Smooth UI transition to dashboard for verified mock user
+    // Frontend-only transition back to login page
     setTimeout(() => {
-      router.push('/dashboard')
-    }, 350)
-  }
-
-  // GitHub Button Handler (Frontend Notice)
-  const handleGitHubClick = () => {
-    setErrorMessage(null)
-    setInfoNotice('GitHub login will be available after authentication integration.')
-  }
-
-  // Forgot Password Handler (Frontend Notice)
-  const handleForgotPassword = () => {
-    setErrorMessage(null)
-    setInfoNotice('Password recovery will be available after authentication integration.')
+      router.push('/login')
+    }, 700)
   }
 
   return (
@@ -316,14 +335,14 @@ export default function LoginPage() {
         </div>
 
         {/* ======================================================= */}
-        {/* RIGHT LOGIN PANEL (~58% on desktop: 7 cols out of 12)  */}
+        {/* RIGHT SIGNUP PANEL (~58% on desktop: 7 cols out of 12) */}
         {/* ======================================================= */}
         <div className="lg:col-span-7 bg-[#F8FAFC] flex items-center justify-center p-6 sm:p-10 lg:p-12">
-          {/* Centered Login Card */}
+          {/* Centered Signup Card */}
           <div className="w-full max-w-[460px] bg-white rounded-2xl border border-[#E2E8F0] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 sm:p-9 transition-all">
             
-            {/* Login Card Header */}
-            <div className="text-center mb-7">
+            {/* Signup Card Header */}
+            <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center gap-2.5">
                 <BrandBarLogo className="h-7" />
                 <h2 className="text-[26px] font-bold text-[#1F3864] tracking-tight">
@@ -331,25 +350,47 @@ export default function LoginPage() {
                 </h2>
               </div>
               <p className="text-[13px] text-[#64748B] mt-1.5">
-                Sign in to your team&apos;s dashboard
+                Create your team account
               </p>
             </div>
 
-            {/* Error or Info Notice */}
+            {/* Error Message */}
             {errorMessage && (
-              <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-[12.5px] text-red-600 text-center leading-relaxed animate-in fade-in duration-150">
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-[12.5px] text-red-600 text-center leading-relaxed animate-in fade-in duration-150">
                 {errorMessage}
               </div>
             )}
 
-            {infoNotice && (
-              <div className="mb-5 p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-[12.5px] text-[#4F46E5] text-center leading-relaxed animate-in fade-in duration-150">
-                {infoNotice}
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[12.5px] text-emerald-700 text-center flex items-center justify-center gap-2 leading-relaxed animate-in fade-in duration-150">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{successMessage}</span>
               </div>
             )}
 
-            {/* Login Form */}
-            <form onSubmit={handleSignIn} className="space-y-4">
+            {/* Signup Form */}
+            <form onSubmit={handleSignUp} className="space-y-4">
+              {/* Full Name Field */}
+              <div>
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1.5">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                    autoComplete="name"
+                    className="w-full h-12 bg-white rounded-xl border border-[#E2E8F0] pl-10 pr-4 text-[14px] text-[#0F172A] placeholder-[#94A3B8] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
               {/* Email Field */}
               <div>
                 <label className="block text-[13px] font-semibold text-[#0F172A] mb-1.5">
@@ -383,8 +424,8 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
+                    placeholder="Create a password"
+                    autoComplete="new-password"
                     className="w-full h-12 bg-white rounded-xl border border-[#E2E8F0] pl-10 pr-11 text-[14px] text-[#0F172A] placeholder-[#94A3B8] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 outline-none transition-all"
                   />
                   <button
@@ -401,28 +442,38 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Remember me + Forgot password */}
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-[#CBD5E1] text-[#4F46E5] focus:ring-[#4F46E5] cursor-pointer"
-                  />
-                  <span className="text-[13px] text-[#64748B]">Remember me</span>
+              {/* Confirm Password Field */}
+              <div>
+                <label className="block text-[13px] font-semibold text-[#0F172A] mb-1.5">
+                  Confirm Password
                 </label>
-
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-[13px] font-semibold text-[#4F46E5] hover:text-[#4338CA] transition-colors cursor-pointer"
-                >
-                  Forgot password?
-                </button>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8]">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    autoComplete="new-password"
+                    className="w-full h-12 bg-white rounded-xl border border-[#E2E8F0] pl-10 pr-11 text-[14px] text-[#0F172A] placeholder-[#94A3B8] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#94A3B8] hover:text-[#64748B] transition-colors cursor-pointer"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
-              {/* Sign In Primary Button */}
+              {/* Create Account Primary Button */}
               <div className="pt-2">
                 <button
                   type="submit"
@@ -432,41 +483,23 @@ export default function LoginPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      <span>Signing in...</span>
+                      <span>Creating Account...</span>
                     </>
                   ) : (
-                    <span>Sign In</span>
+                    <span>Create Account</span>
                   )}
                 </button>
               </div>
             </form>
 
-            {/* OR Divider */}
-            <div className="relative my-6 flex items-center justify-center">
-              <div className="w-full border-t border-[#E2E8F0]" />
-              <span className="absolute bg-white px-3 text-[11px] font-medium text-[#94A3B8] uppercase tracking-wider">
-                OR
-              </span>
-            </div>
-
-            {/* Continue with GitHub Secondary Button */}
-            <button
-              type="button"
-              onClick={handleGitHubClick}
-              className="w-full h-12 bg-white hover:bg-slate-50 border border-[#E2E8F0] text-[#0F172A] font-semibold text-[14px] rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5 cursor-pointer"
-            >
-              <GitHubIcon className="w-5 h-5 text-[#0F172A]" />
-              <span>Continue with GitHub</span>
-            </button>
-
-            {/* Sign Up Footer Link */}
+            {/* Already have an account? Sign In Footer */}
             <p className="text-center text-[13px] text-[#64748B] mt-6">
-              Don&apos;t have an account?{' '}
+              Already have an account?{' '}
               <Link
-                href="/signup"
+                href="/login"
                 className="font-semibold text-[#4F46E5] hover:text-[#4338CA] hover:underline ml-1 transition-colors"
               >
-                Sign Up
+                Sign In
               </Link>
             </p>
           </div>
