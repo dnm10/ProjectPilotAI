@@ -71,8 +71,39 @@ const INITIAL_BOARD_TICKETS: Ticket[] = [
   },
 ]
 
-export async function fetchSprintTickets(sprintId: string): Promise<Ticket[]> {
-  return INITIAL_BOARD_TICKETS.filter((t) => t.sprint_id === sprintId)
+export async function fetchSprintTickets(
+  sprintId: string
+): Promise<Ticket[]> {
+  if (!sprintId) {
+  return []
+}
+  const response = await fetch(
+    `http://localhost:5000/api/sprints/${sprintId}/tickets`
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch sprint tickets')
+  }
+
+  const data = await response.json()
+
+  return data.tickets.map((ticket: any) => ({
+    id: ticket.id,
+    title: ticket.title,
+    description: ticket.description ?? '',
+    status: ticket.status,
+    assignee: {
+      id: '',
+      name: 'Unassigned',
+      initials: 'UA',
+    },
+    story_points: ticket.story_points ?? 0,
+    priority: ticket.priority ?? 'medium',
+    risk_score: 0,
+    sprint_id: ticket.sprint_id,
+    created_at: ticket.created_at,
+    updated_at: ticket.updated_at,
+  }))
 }
 
 export async function updateTicketStatus(
@@ -80,4 +111,18 @@ export async function updateTicketStatus(
   newStatus: TicketStatus
 ): Promise<{ success: boolean; ticketId: string; newStatus: TicketStatus }> {
   return { success: true, ticketId, newStatus }
+}
+
+export async function fetchSprints() {
+  const response = await fetch(
+    'http://localhost:5000/api/sprints'
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch sprints')
+  }
+
+  const data = await response.json()
+
+  return data.sprints
 }

@@ -96,3 +96,57 @@ export async function planSprintSchedule(
     },
   ]
 }
+
+export interface CreateSprintData {
+  name: string
+  start_date?: string
+  end_date?: string
+  planned_velocity?: number
+  status?: string
+}
+
+export async function createSprint(
+  sprintData: CreateSprintData
+) {
+  const response = await fetch('http://localhost:5000/api/sprints', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(sprintData),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to create sprint')
+  }
+
+  return response.json()
+}
+
+export async function createTickets(
+  sprintId: string,
+  tickets: DraftTask[]
+) {
+  const response = await fetch('http://localhost:5000/api/tickets', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sprint_id: sprintId,
+      tickets: tickets.map((task) => ({
+        title: task.title,
+        description: task.description,
+        story_points: task.story_points,
+        status: 'todo',
+        priority: 'medium',
+      })),
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to create tickets')
+  }
+
+  return response.json()
+}
