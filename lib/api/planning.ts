@@ -16,48 +16,32 @@ export interface DeveloperSchedule {
 }
 
 export async function generateTasksFromRequirements(
-  _requirements: string
+  requirements: string
 ): Promise<DraftTask[]> {
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  const response = await fetch(
+    'http://localhost:5000/api/ai/generate-tasks',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requirements,
+      }),
+    }
+  )
 
-  return [
-    {
-      id: 'draft-1',
-      title: 'Implement OAuth callback & JWT token exchange in FastAPI',
-      description:
-        'Handle GitHub OAuth redirect, verify state parameter, exchange code for access token, and issue signed JWT session cookie.',
-      story_points: 5,
-      is_included: true,
-      suggested_developer: 'Aditi Sharma',
-    },
-    {
-      id: 'draft-2',
-      title: 'Database schema migration for risk_scores table with RLS policies',
-      description:
-        'Create PostgreSQL migration adding shap_explanation JSONB column and Row-Level Security policy for lead-only burnout view.',
-      story_points: 3,
-      is_included: true,
-      suggested_developer: 'Meera Iyer',
-    },
-    {
-      id: 'draft-3',
-      title: 'Build Recharts probability histogram for Monte Carlo simulation',
-      description:
-        'Frontend component with color gradient #818CF8 to #4F46E5 rendering finish date probabilities.',
-      story_points: 5,
-      is_included: true,
-      suggested_developer: 'Rohan Verma',
-    },
-    {
-      id: 'draft-4',
-      title: 'Setup automated closed-loop action item verification webhook',
-      description:
-        'Ingest meeting transcripts via Whisper API and match extracted action items against recent Git commits.',
-      story_points: 8,
-      is_included: true,
-      suggested_developer: 'Kabir Mehta',
-    },
-  ]
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+
+    throw new Error(
+      errorData?.message || 'Failed to generate tasks with AI'
+    )
+  }
+
+  const data = await response.json()
+
+  return data.tasks
 }
 
 export async function planSprintSchedule(
