@@ -1,5 +1,8 @@
 const express = require('express');
-const { getSprintTickets } = require('../controllers/sprintController');
+const {
+  getSprintTickets,
+  deleteSprint,
+} = require('../controllers/sprintController');
 const { createSprint } = require('../controllers/sprintCreateController');
 const { getSprints } = require('../controllers/sprintListController');
 
@@ -10,5 +13,6 @@ router.get('/', getSprints);
 router.get('/:sprintId/tickets', getSprintTickets);
 
 router.post('/', createSprint);
+router.delete('/:sprintId', deleteSprint);
 
 module.exports = router;
