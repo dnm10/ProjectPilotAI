@@ -10,9 +10,11 @@ app.use(express.json());
 // Routes
 const sprintRoutes = require('./routes/sprintRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 app.use('/api/sprints', sprintRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.json({
