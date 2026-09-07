@@ -58,6 +58,63 @@ const createTickets = async (req, res) => {
   }
 };
 
+const updateTicketStatus = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['todo', 'in_progress', 'in_review', 'done'];
+
+    if (!ticketId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ticket ID is required',
+      });
+    }
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket status',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({
+        status,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', ticketId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update ticket status',
+        error: error.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Ticket status updated successfully',
+      ticket: data,
+    });
+  } catch (error) {
+    console.error('Server error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   createTickets,
+  updateTicketStatus,
 };
