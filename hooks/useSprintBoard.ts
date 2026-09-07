@@ -3,6 +3,7 @@ import {
   fetchSprintTickets,
   updateTicketStatus,
   fetchSprints,
+  deleteSprint,
 } from '@/lib/api/sprints'
 import { Ticket, TicketStatus } from '@/types'
 
@@ -54,5 +55,17 @@ export function useSprints() {
   return useQuery({
     queryKey: ['sprints'],
     queryFn: fetchSprints,
+  })
+}
+
+export function useDeleteSprint() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (sprintId: string) => deleteSprint(sprintId),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sprints'] })
+    },
   })
 }

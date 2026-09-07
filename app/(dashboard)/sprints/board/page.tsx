@@ -8,10 +8,11 @@ import {
   useSprintTickets,
   useUpdateTicketStatus,
   useSprints,
+  useDeleteSprint,
 } from '@/hooks/useSprintBoard'
 import KanbanColumn from '@/components/features/sprints/KanbanColumn'
 import { TicketStatus } from '@/types'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, Trash2 } from 'lucide-react'
 
 const COLUMNS: { status: TicketStatus; title: string }[] = [
   { status: 'todo', title: 'To Do' },
@@ -29,6 +30,8 @@ export default function SprintBoardPage() {
   } = useFilterStore()
 
   const { data: sprints = [] } = useSprints()
+
+  const deleteSprintMutation = useDeleteSprint()
 
   React.useEffect(() => {
     if (!selectedSprintId && sprints.length > 0) {
@@ -75,6 +78,37 @@ export default function SprintBoardPage() {
     }
   }
 
+  // Delete selected sprint
+  const handleDeleteSprint = () => {
+    if (!selectedSprintId) return
+
+    const selectedSprint = sprints.find(
+      (sprint) => sprint.id === selectedSprintId
+    )
+
+    if (!selectedSprint) return
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${selectedSprint.name}"?`
+    )
+
+    if (!confirmed) return
+
+    deleteSprintMutation.mutate(selectedSprintId, {
+      onSuccess: () => {
+        const remainingSprints = sprints.filter(
+          (sprint) => sprint.id !== selectedSprintId
+        )
+
+        setSelectedSprintId(
+          remainingSprints.length > 0
+            ? remainingSprints[0].id
+            : ''
+        )
+      },
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Header Bar */}
@@ -85,31 +119,39 @@ export default function SprintBoardPage() {
           </h1>
 
           <p className="text-[13px] text-[#64748B] mt-0.5">
-  {sprints.find((sprint) => sprint.id === selectedSprintId)?.name || 'No sprint selected'}
-  {' • '}
-  {sprints.find((sprint) => sprint.id === selectedSprintId)?.start_date || ''}
-  {' – '}
-  {sprints.find((sprint) => sprint.id === selectedSprintId)?.end_date || ''}
-</p>
+            {sprints.find(
+              (sprint) => sprint.id === selectedSprintId
+            )?.name || 'No sprint selected'}
+            {' • '}
+            {sprints.find(
+              (sprint) => sprint.id === selectedSprintId
+            )?.start_date || ''}
+            {' – '}
+            {sprints.find(
+              (sprint) => sprint.id === selectedSprintId
+            )?.end_date || ''}
+          </p>
         </div>
 
-        {/* Controls: Assignee Filter + Plan Sprint Button */}
+        {/* Controls */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
 
           {/* Sprint Selector */}
-<div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px]">
-  <select
-    value={selectedSprintId}
-    onChange={(e) => setSelectedSprintId(e.target.value)}
-    className="bg-transparent text-[13px] font-medium text-[#0F172A] focus:outline-none cursor-pointer"
-  >
-    {sprints.map((sprint) => (
-      <option key={sprint.id} value={sprint.id}>
-        {sprint.name}
-      </option>
-    ))}
-  </select>
-</div>
+          <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px]">
+            <select
+              value={selectedSprintId}
+              onChange={(e) =>
+                setSelectedSprintId(e.target.value)
+              }
+              className="bg-transparent text-[13px] font-medium text-[#0F172A] focus:outline-none cursor-pointer"
+            >
+              {sprints.map((sprint) => (
+                <option key={sprint.id} value={sprint.id}>
+                  {sprint.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Quick Assignee Filter */}
           <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px]">
@@ -129,6 +171,23 @@ export default function SprintBoardPage() {
               <option value="Kabir">Kabir Mehta</option>
             </select>
           </div>
+
+          {/* Delete Sprint Button */}
+          <button
+            onClick={handleDeleteSprint}
+            disabled={
+              deleteSprintMutation.isPending ||
+              !selectedSprintId
+            }
+            className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>
+              {deleteSprintMutation.isPending
+                ? 'Deleting...'
+                : 'Delete Sprint'}
+            </span>
+          </button>
 
           {/* Plan New Sprint Button */}
           <Link
