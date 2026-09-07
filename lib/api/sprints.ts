@@ -110,7 +110,34 @@ export async function updateTicketStatus(
   ticketId: string,
   newStatus: TicketStatus
 ): Promise<{ success: boolean; ticketId: string; newStatus: TicketStatus }> {
-  return { success: true, ticketId, newStatus }
+  const response = await fetch(
+    `http://localhost:5000/api/tickets/${ticketId}/status`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status: newStatus,
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+
+    throw new Error(
+      errorData?.message || 'Failed to update ticket status'
+    )
+  }
+
+  const data = await response.json()
+
+  return {
+    success: data.success,
+    ticketId: data.ticket?.id ?? ticketId,
+    newStatus: data.ticket?.status ?? newStatus,
+  }
 }
 
 export async function fetchSprints() {
