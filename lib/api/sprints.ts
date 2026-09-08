@@ -1,4 +1,5 @@
 import { Ticket, TicketStatus } from '@/types'
+import { API_BASE_URL } from './config'
 
 const INITIAL_BOARD_TICKETS: Ticket[] = [
   {
@@ -78,7 +79,7 @@ export async function fetchSprintTickets(
   return []
 }
   const response = await fetch(
-    `http://localhost:5000/api/sprints/${sprintId}/tickets`
+    `${API_BASE_URL}/api/sprints/${sprintId}/tickets`
   )
 
   if (!response.ok) {
@@ -111,7 +112,7 @@ export async function updateTicketStatus(
   newStatus: TicketStatus
 ): Promise<{ success: boolean; ticketId: string; newStatus: TicketStatus }> {
   const response = await fetch(
-    `http://localhost:5000/api/tickets/${ticketId}/status`,
+    `${API_BASE_URL}/api/tickets/${ticketId}/status`,
     {
       method: 'PATCH',
       headers: {
@@ -142,7 +143,7 @@ export async function updateTicketStatus(
 
 export async function fetchSprints() {
   const response = await fetch(
-    'http://localhost:5000/api/sprints'
+    `${API_BASE_URL}/api/sprints`
   )
 
   if (!response.ok) {
@@ -156,7 +157,7 @@ export async function fetchSprints() {
 
 export async function deleteSprint(sprintId: string) {
   const response = await fetch(
-    `http://localhost:5000/api/sprints/${sprintId}`,
+    `${API_BASE_URL}/api/sprints/${sprintId}`,
     {
       method: 'DELETE',
     }

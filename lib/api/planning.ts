@@ -1,3 +1,5 @@
+import { API_BASE_URL } from './config'
+
 export interface DraftTask {
   id: string
   title: string
@@ -19,7 +21,7 @@ export async function generateTasksFromRequirements(
   requirements: string
 ): Promise<DraftTask[]> {
   const response = await fetch(
-    'http://localhost:5000/api/ai/generate-tasks',
+    `${API_BASE_URL}/api/ai/generate-tasks`,
     {
       method: 'POST',
       headers: {
@@ -92,7 +94,7 @@ export interface CreateSprintData {
 export async function createSprint(
   sprintData: CreateSprintData
 ) {
-  const response = await fetch('http://localhost:5000/api/sprints', {
+  const response = await fetch(`${API_BASE_URL}/api/sprints`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -111,7 +113,7 @@ export async function createTickets(
   sprintId: string,
   tickets: DraftTask[]
 ) {
-  const response = await fetch('http://localhost:5000/api/tickets', {
+  const response = await fetch(`${API_BASE_URL}/api/tickets`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
