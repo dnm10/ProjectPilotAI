@@ -1,8 +1,16 @@
-# Frontend
+# Dependencies
 node_modules/
-.next/
-next-env.d.ts
 
-# Backend
-backend/node_modules/
-backend/.env
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
