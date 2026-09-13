@@ -11,10 +11,12 @@ app.use(express.json());
 const sprintRoutes = require('./routes/sprintRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const teamRoutes = require('./routes/teamRoutes');
 
 app.use('/api/sprints', sprintRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/team', teamRoutes);
 
 app.get('/', (req, res) => {
   res.json({
@@ -30,4 +32,4 @@ if (!process.env.VERCEL) {
   });
 }
 
-module.exports = app;
+module.exports = app;

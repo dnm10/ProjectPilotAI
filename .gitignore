@@ -14,3 +14,10 @@ yarn-error.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Next.js generated files
+.next/
+next-env.d.ts
+
+# Backup files
+*.backup.json
