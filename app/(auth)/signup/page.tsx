@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { registerMockAccount } from '@/lib/mockAuth'
+import { supabase } from '@/lib/supabase/client'
 import {
   User,
   Mail,
@@ -170,7 +170,7 @@ export default function SignupPage() {
 
   // Frontend-Only Registration Handler
   // TODO: Replace temporary frontend authentication with real backend/Supabase authentication.
-  const handleSignUp = (e: React.FormEvent) => {
+ const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -213,16 +213,41 @@ export default function SignupPage() {
       return
     }
 
-    // Register into temporary mock account storage
-    const result = registerMockAccount(name, email, password)
+    
+   setIsLoading(true)
 
-    if (!result.success) {
-      setErrorMessage(result.error || 'Registration failed. Please try again.')
-      return
-    }
+const { data, error } = await supabase.auth.signUp({
+  email: email.trim().toLowerCase(),
+  password,
+})
 
-    setIsLoading(true)
-    setSuccessMessage('Account created successfully. Please sign in.')
+if (error) {
+  setIsLoading(false)
+  setErrorMessage(error.message)
+  return
+}
+
+if (!data.user) {
+  setIsLoading(false)
+  setErrorMessage('Registration failed. Please try again.')
+  return
+}
+
+const { error: profileError } = await supabase
+  .from('profiles')
+  .insert({
+    id: data.user.id,
+    full_name: name.trim(),
+    email: email.trim().toLowerCase(),
+  })
+
+if (profileError) {
+  setIsLoading(false)
+  setErrorMessage(profileError.message)
+  return
+}
+
+setSuccessMessage('Account created successfully. Please sign in.')
 
     // Frontend-only transition back to login page
     setTimeout(() => {

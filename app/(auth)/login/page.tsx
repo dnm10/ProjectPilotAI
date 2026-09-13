@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { verifyMockLogin } from '@/lib/mockAuth'
+import { supabase } from '@/lib/supabase/client'
 import {
   Mail,
   Lock,
@@ -162,7 +162,7 @@ export default function LoginPage() {
 
   // Frontend-Only Sign In Verification
   // TODO: Replace temporary frontend authentication with real backend/Supabase authentication.
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
     setInfoNotice(null)
@@ -183,20 +183,21 @@ export default function LoginPage() {
       return
     }
 
-    // Verify against temporary mock accounts stored locally
-    const result = verifyMockLogin(email, password)
+   setIsLoading(true)
 
-    if (!result.success) {
-      setErrorMessage(result.error || 'Authentication failed.')
-      return
-    }
+const { error } = await supabase.auth.signInWithPassword({
+  email: email.trim().toLowerCase(),
+  password,
+})
 
-    setIsLoading(true)
+if (error) {
+  setIsLoading(false)
+  setErrorMessage(error.message)
+  return
+}
 
-    // Smooth UI transition to dashboard for verified mock user
-    setTimeout(() => {
-      router.push('/dashboard')
-    }, 350)
+router.push('/dashboard')
+router.refresh()
   }
 
   // GitHub Button Handler (Frontend Notice)
