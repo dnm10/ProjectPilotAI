@@ -154,7 +154,7 @@ export default function SprintBoardPage() {
           </div>
 
           {/* Quick Assignee Filter */}
-          <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px]">
+          {/* <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px]">
             <Users className="w-4 h-4 text-[#64748B]" />
 
             <select
@@ -170,7 +170,7 @@ export default function SprintBoardPage() {
               <option value="Meera">Meera Iyer</option>
               <option value="Kabir">Kabir Mehta</option>
             </select>
-          </div>
+          </div> */}
 
           {/* Delete Sprint Button */}
           <button

@@ -58,11 +58,11 @@ export default function TicketCard({ ticket }: TicketCardProps) {
       <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#E2E8F0]/70">
         <div className="flex items-center gap-1.5">
           <div className="w-5 h-5 rounded-full bg-[#1F3864] text-white flex items-center justify-center text-[9px] font-bold">
-            {ticket.assignee.initials}
+            {ticket.assignee?.initials || 'UA'}
           </div>
 
           <span className="text-[11px] text-[#64748B] truncate max-w-[90px]">
-            {ticket.assignee.name}
+            {ticket.assignee?.name || 'Unassigned'}
           </span>
         </div>
 

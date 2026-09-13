@@ -59,33 +59,40 @@ export async function fetchTeamMembers(
     `${API_BASE_URL}/api/team?team_id=${encodeURIComponent(teamId)}`
   )
 
+  const data = await response.json().catch(() => null)
+
+  console.log('Team members API response:', data)
+
   if (!response.ok) {
-    throw new Error('Failed to fetch team members')
+    throw new Error(
+      data?.message || 'Failed to fetch team members'
+    )
   }
 
-  const data: {
-    success: boolean
-    teamMembers: BackendTeamMember[]
-  } = await response.json()
+  return (data?.teamMembers || []).map(
+    (member: BackendTeamMember) => {
+      const profile = member.profiles
 
-  return data.teamMembers.map((member) => {
-    const profile = member.profiles
-    const name = profile?.full_name || profile?.email || 'Unknown User'
+      const name =
+        profile?.full_name ||
+        profile?.email ||
+        'Unknown User'
 
-    return {
-      id: member.user_id,
-      name,
-      email: profile?.email || '',
-      initials: name
-        .split(' ')
-        .map((part) => part[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase(),
-      role_in_team: member.role_in_team || 'Member',
-      current_workload_percentage: 0,
+      return {
+        id: member.user_id,
+        name,
+        email: profile?.email || '',
+        initials: name
+          .split(' ')
+          .map((part) => part[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase(),
+        role_in_team: member.role_in_team || 'Member',
+        current_workload_percentage: 0,
+      }
     }
-  })
+  )
 }
 
 export async function fetchAvailableUsers(): Promise<AvailableUser[]> {

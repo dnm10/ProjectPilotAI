@@ -76,8 +76,9 @@ export async function fetchSprintTickets(
   sprintId: string
 ): Promise<Ticket[]> {
   if (!sprintId) {
-  return []
-}
+    return []
+  }
+
   const response = await fetch(
     `${API_BASE_URL}/api/sprints/${sprintId}/tickets`
   )
@@ -88,23 +89,40 @@ export async function fetchSprintTickets(
 
   const data = await response.json()
 
-  return data.tickets.map((ticket: any) => ({
-    id: ticket.id,
-    title: ticket.title,
-    description: ticket.description ?? '',
-    status: ticket.status,
-    assignee: {
-      id: '',
-      name: 'Unassigned',
-      initials: 'UA',
-    },
-    story_points: ticket.story_points ?? 0,
-    priority: ticket.priority ?? 'medium',
-    risk_score: 0,
-    sprint_id: ticket.sprint_id,
-    created_at: ticket.created_at,
-    updated_at: ticket.updated_at,
-  }))
+  return (data.tickets || []).map((ticket: any) => {
+    const profile = ticket.profiles || null
+
+    const developerName =
+      profile?.full_name ||
+      profile?.email ||
+      'Unassigned'
+
+    return {
+      id: ticket.id,
+      title: ticket.title,
+      description: ticket.description ?? '',
+      status: ticket.status,
+      assignee: {
+        id: ticket.assignee_id || '',
+        name: developerName,
+        initials:
+          developerName === 'Unassigned'
+            ? 'UA'
+            : developerName
+                .split(' ')
+                .map((part: string) => part[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase(),
+      },
+      story_points: ticket.story_points ?? 0,
+      priority: ticket.priority ?? 'medium',
+      risk_score: 0,
+      sprint_id: ticket.sprint_id,
+      created_at: ticket.created_at,
+      updated_at: ticket.updated_at,
+    }
+  })
 }
 
 export async function updateTicketStatus(

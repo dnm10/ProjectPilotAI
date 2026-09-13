@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config'
+import type { TeamMember } from '@/types'
 
 export interface DraftTask {
   id: string
@@ -7,6 +8,8 @@ export interface DraftTask {
   story_points: number
   is_included: boolean
   suggested_developer?: string
+  assignee_id?: string
+  assigned_developer_name?: string
 }
 
 export interface DeveloperSchedule {
@@ -47,40 +50,45 @@ export async function generateTasksFromRequirements(
 }
 
 export async function planSprintSchedule(
-  tasks: DraftTask[]
+  tasks: DraftTask[],
+  teamMembers: TeamMember[]
 ): Promise<DeveloperSchedule[]> {
-  await new Promise((resolve) => setTimeout(resolve, 1200))
+  const assignedTasks = tasks.filter(
+    (task) => task.is_included && task.assignee_id
+  )
 
-  return [
-    {
-      developer_name: 'Aditi Sharma',
-      role: 'Lead Backend',
-      assigned_points: 5,
-      estimated_days: 3,
-      assigned_tasks_count: 1,
-    },
-    {
-      developer_name: 'Meera Iyer',
-      role: 'Database & Auth',
-      assigned_points: 3,
-      estimated_days: 2,
-      assigned_tasks_count: 1,
-    },
-    {
-      developer_name: 'Rohan Verma',
-      role: 'Frontend UI',
-      assigned_points: 5,
-      estimated_days: 3,
-      assigned_tasks_count: 1,
-    },
-    {
-      developer_name: 'Kabir Mehta',
-      role: 'AI / ML Integrations',
-      assigned_points: 8,
-      estimated_days: 5,
-      assigned_tasks_count: 1,
-    },
-  ]
+  const schedules = teamMembers
+    .map((member) => {
+      const memberTasks = assignedTasks.filter(
+        (task) => task.assignee_id === member.id
+      )
+
+      if (memberTasks.length === 0) {
+        return null
+      }
+
+      const assignedPoints = memberTasks.reduce(
+        (sum, task) => sum + Number(task.story_points || 0),
+        0
+      )
+
+      return {
+        developer_name: member.name,
+        role: member.role_in_team || 'Member',
+        assigned_points: assignedPoints,
+        estimated_days: Math.max(
+          1,
+          Math.ceil(assignedPoints / 3)
+        ),
+        assigned_tasks_count: memberTasks.length,
+      }
+    })
+    .filter(
+      (schedule): schedule is DeveloperSchedule =>
+        schedule !== null
+    )
+
+  return schedules
 }
 
 export interface CreateSprintData {
@@ -94,45 +102,60 @@ export interface CreateSprintData {
 export async function createSprint(
   sprintData: CreateSprintData
 ) {
-  const response = await fetch(`${API_BASE_URL}/api/sprints`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(sprintData),
-  })
+  const response = await fetch(
+    `${API_BASE_URL}/api/sprints`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sprintData),
+    }
+  )
+
+  const data = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error('Failed to create sprint')
+    throw new Error(
+      data?.message || 'Failed to create sprint'
+    )
   }
 
-  return response.json()
+  return data
 }
 
 export async function createTickets(
   sprintId: string,
   tickets: DraftTask[]
 ) {
-  const response = await fetch(`${API_BASE_URL}/api/tickets`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      sprint_id: sprintId,
-      tickets: tickets.map((task) => ({
-        title: task.title,
-        description: task.description,
-        story_points: task.story_points,
-        status: 'todo',
-        priority: 'medium',
-      })),
-    }),
-  })
+  const response = await fetch(
+    `${API_BASE_URL}/api/tickets`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sprint_id: sprintId,
+        tickets: tickets.map((task) => ({
+          title: task.title,
+          description: task.description,
+          story_points: task.story_points,
+          status: 'todo',
+          priority: 'medium',
+          assignee_id: task.assignee_id || null,
+        })),
+      }),
+    }
+  )
+
+  const data = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error('Failed to create tickets')
+    throw new Error(
+      data?.message || 'Failed to create tickets'
+    )
   }
 
-  return response.json()
+  return data
 }
