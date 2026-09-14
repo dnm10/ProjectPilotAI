@@ -1,6 +1,7 @@
 import { TeamMember } from '@/types'
 import { API_BASE_URL } from './config'
 
+
 export type Team = {
   id: string
   name: string
@@ -155,4 +156,95 @@ export async function addTeamMember(
   }
 
   return data.teamMember
+}
+
+
+export async function updateTeam(
+  teamId: string,
+  name: string
+): Promise<Team> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/team/${teamId}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+      }),
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update team')
+  }
+
+  return data.team as Team
+}
+
+export async function deleteTeam(teamId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/team/${teamId}`,
+    {
+      method: 'DELETE',
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete team')
+  }
+
+  return data
+}
+
+export async function updateTeamMember(
+  memberId: string,
+  roleInTeam: string
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/team/members/${memberId}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        role_in_team: roleInTeam,
+      }),
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || 'Failed to update team member'
+    )
+  }
+
+  return data.teamMember
+}
+
+export async function removeTeamMember(memberId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/team/members/${memberId}`,
+    {
+      method: 'DELETE',
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || 'Failed to remove team member'
+    )
+  }
+
+  return data
 }

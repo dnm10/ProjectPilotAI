@@ -10,6 +10,8 @@ import {
   Loader2,
   ArrowLeft,
   UsersRound,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 
 import { supabase } from '@/lib/supabase/client'
@@ -19,6 +21,10 @@ import {
   fetchAvailableUsers,
   fetchTeamMembers,
   fetchTeams,
+  updateTeam,
+  deleteTeam,
+  updateTeamMember,
+  removeTeamMember,
   AvailableUser,
   Team,
 } from '@/lib/api/team'
@@ -49,14 +55,26 @@ export default function TeamPage() {
 
   const [showCreateTeam, setShowCreateTeam] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
+  const [showEditTeam, setShowEditTeam] = useState(false)
 
   const [teamName, setTeamName] = useState('')
+  const [editingTeamName, setEditingTeamName] = useState('')
+
+  const [editingMember, setEditingMember] =
+    useState<TeamMember | null>(null)
+  const [editingMemberRole, setEditingMemberRole] = useState('Member')
 
   const [loadingTeams, setLoadingTeams] = useState(true)
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [creatingTeam, setCreatingTeam] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
+  const [updatingTeam, setUpdatingTeam] = useState(false)
+  const [deletingTeam, setDeletingTeam] = useState(false)
+  const [updatingMember, setUpdatingMember] = useState(false)
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(
+    null
+  )
 
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -237,6 +255,163 @@ export default function TeamPage() {
     }
   }
 
+  const handleOpenEditTeam = (team: Team) => {
+    setSelectedTeam(team)
+    setEditingTeamName(team.name)
+    setError('')
+    setSuccess('')
+    setShowEditTeam(true)
+  }
+
+  const handleUpdateTeam = async () => {
+    if (!selectedTeam) return
+
+    if (!editingTeamName.trim()) {
+      setError('Please enter a team name')
+      return
+    }
+
+    try {
+      setUpdatingTeam(true)
+      setError('')
+      setSuccess('')
+
+      const updatedTeam = await updateTeam(
+        selectedTeam.id,
+        editingTeamName.trim()
+      )
+
+      setTeams((previousTeams) =>
+        previousTeams.map((team) =>
+          team.id === updatedTeam.id ? updatedTeam : team
+        )
+      )
+
+      setSelectedTeam(updatedTeam)
+      setShowEditTeam(false)
+      setSuccess('Team updated successfully')
+    } catch (error) {
+      console.error('Failed to update team:', error)
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update team'
+      )
+    } finally {
+      setUpdatingTeam(false)
+    }
+  }
+
+  const handleDeleteTeam = async (team: Team) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${team.name}"? This will also remove its members.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setDeletingTeam(true)
+      setError('')
+      setSuccess('')
+
+      await deleteTeam(team.id)
+
+      setTeams((previousTeams) =>
+        previousTeams.filter((item) => item.id !== team.id)
+      )
+
+      if (selectedTeam?.id === team.id) {
+        setSelectedTeam(null)
+        setTeamMembers([])
+        localStorage.removeItem(TEAM_ID_STORAGE_KEY)
+      }
+
+      setSuccess('Team deleted successfully')
+    } catch (error) {
+      console.error('Failed to delete team:', error)
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to delete team'
+      )
+    } finally {
+      setDeletingTeam(false)
+    }
+  }
+
+  const handleOpenEditMember = (member: TeamMember) => {
+    setEditingMember(member)
+    setEditingMemberRole(member.role_in_team || 'Member')
+    setError('')
+    setSuccess('')
+  }
+
+  const handleUpdateMember = async () => {
+    if (!editingMember) return
+
+    try {
+      setUpdatingMember(true)
+      setError('')
+      setSuccess('')
+
+      await updateTeamMember(
+        editingMember.id,
+        editingMemberRole
+      )
+
+      if (selectedTeam) {
+        await loadMembers(selectedTeam.id)
+      }
+
+      setEditingMember(null)
+      setSuccess('Member role updated successfully')
+    } catch (error) {
+      console.error('Failed to update member:', error)
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to update member'
+      )
+    } finally {
+      setUpdatingMember(false)
+    }
+  }
+
+  const handleRemoveMember = async (member: TeamMember) => {
+    const confirmed = window.confirm(
+      `Remove ${member.name} from this team?`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setRemovingMemberId(member.id)
+      setError('')
+      setSuccess('')
+
+      await removeTeamMember(member.id)
+
+      setTeamMembers((previousMembers) =>
+        previousMembers.filter((item) => item.id !== member.id)
+      )
+
+      setSuccess('Member removed successfully')
+    } catch (error) {
+      console.error('Failed to remove member:', error)
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to remove member'
+      )
+    } finally {
+      setRemovingMemberId(null)
+    }
+  }
+
   const filteredMembers = teamMembers.filter((member) => {
     const search = searchTerm.toLowerCase()
 
@@ -330,29 +505,52 @@ export default function TeamPage() {
             ) : (
               <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {teams.map((team) => (
-                  <button
+                  <div
                     key={team.id}
-                    onClick={() => handleSelectTeam(team)}
-                    className="group rounded-xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
+                    className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-sky-300 hover:shadow-md"
                   >
                     <div className="mb-5 flex items-center justify-between">
-                      <div className="rounded-xl bg-sky-100 p-3">
+                      <button
+                        onClick={() => handleSelectTeam(team)}
+                        className="rounded-xl bg-sky-100 p-3"
+                        title="Open team"
+                      >
                         <UsersRound className="h-6 w-6 text-sky-600" />
-                      </div>
+                      </button>
 
-                      <span className="text-sm text-slate-400 group-hover:text-sky-600">
-                        Open →
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEditTeam(team)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-sky-50 hover:text-sky-600"
+                          title="Edit team"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteTeam(team)}
+                          disabled={deletingTeam}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          title="Delete team"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
 
-                    <h2 className="text-xl font-semibold text-slate-900">
-                      {team.name}
-                    </h2>
+                    <button
+                      onClick={() => handleSelectTeam(team)}
+                      className="w-full text-left"
+                    >
+                      <h2 className="text-xl font-semibold text-slate-900">
+                        {team.name}
+                      </h2>
 
-                    <p className="mt-2 text-sm text-slate-500">
-                      Click to view members and manage this team.
-                    </p>
-                  </button>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Click to view members and manage this team.
+                      </p>
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -386,13 +584,32 @@ export default function TeamPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleOpenAddMember}
-                className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 font-medium text-white transition hover:bg-sky-700"
-              >
-                <UserPlus className="h-4 w-4" />
-                Add Member
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => handleOpenEditTeam(selectedTeam)}
+                  className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 transition hover:border-sky-400 hover:text-sky-600"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit Team
+                </button>
+
+                <button
+                  onClick={() => handleDeleteTeam(selectedTeam)}
+                  disabled={deletingTeam}
+                  className="flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Team
+                </button>
+
+                <button
+                  onClick={handleOpenAddMember}
+                  className="flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 font-medium text-white transition hover:bg-sky-700"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Add Member
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -451,19 +668,44 @@ export default function TeamPage() {
                     key={member.id}
                     className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 font-semibold text-sky-700">
-                        {member.initials}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sky-100 font-semibold text-sky-700">
+                          {member.initials}
+                        </div>
+
+                        <div className="min-w-0">
+                          <h3 className="truncate font-semibold text-slate-900">
+                            {member.name}
+                          </h3>
+
+                          <p className="truncate text-sm text-slate-500">
+                            {member.email}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="min-w-0">
-                        <h3 className="truncate font-semibold text-slate-900">
-                          {member.name}
-                        </h3>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          onClick={() => handleOpenEditMember(member)}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-sky-50 hover:text-sky-600"
+                          title="Edit member role"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
 
-                        <p className="truncate text-sm text-slate-500">
-                          {member.email}
-                        </p>
+                        <button
+                          onClick={() => handleRemoveMember(member)}
+                          disabled={removingMemberId === member.id}
+                          className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          title="Remove member"
+                        >
+                          {removingMemberId === member.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </div>
 
@@ -522,6 +764,106 @@ export default function TeamPage() {
               )}
 
               {creatingTeam ? 'Creating...' : 'Create Team'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showEditTeam && selectedTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-slate-900">
+                Edit Team
+              </h2>
+
+              <button
+                onClick={() => setShowEditTeam(false)}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Team Name
+            </label>
+
+            <input
+              type="text"
+              value={editingTeamName}
+              onChange={(event) =>
+                setEditingTeamName(event.target.value)
+              }
+              placeholder="Enter team name"
+              className="mb-6 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+            />
+
+            <button
+              onClick={handleUpdateTeam}
+              disabled={updatingTeam}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 font-medium text-white hover:bg-sky-700 disabled:opacity-60"
+            >
+              {updatingTeam && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+
+              {updatingTeam ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Edit Member
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Update role for {editingMember.name}.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setEditingMember(null)}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Role in Team
+            </label>
+
+            <select
+              value={editingMemberRole}
+              onChange={(event) =>
+                setEditingMemberRole(event.target.value)
+              }
+              className="mb-6 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+            >
+              {teamRoles.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={handleUpdateMember}
+              disabled={updatingMember}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 font-medium text-white hover:bg-sky-700 disabled:opacity-60"
+            >
+              {updatingMember && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+
+              {updatingMember ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
