@@ -271,10 +271,235 @@ const addTeamMember = async (req, res) => {
   }
 };
 
+
+// PUT /api/team/:teamId
+const updateTeam = async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    const { name } = req.body;
+
+    if (!teamId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Team ID is required',
+      });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Team name is required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('teams')
+      .update({
+        name: name.trim(),
+      })
+      .eq('id', teamId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update team',
+        error: error.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      team: data,
+    });
+  } catch (error) {
+    console.error('Server error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+// DELETE /api/team/:teamId
+const deleteTeam = async (req, res) => {
+  try {
+    const { teamId } = req.params;
+
+    if (!teamId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Team ID is required',
+      });
+    }
+
+    // Delete team members first
+    const { error: membersError } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('team_id', teamId);
+
+    if (membersError) {
+      console.error('Supabase error:', membersError);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete team members',
+        error: membersError.message,
+      });
+    }
+
+    const { error } = await supabase
+      .from('teams')
+      .delete()
+      .eq('id', teamId);
+
+    if (error) {
+      console.error('Supabase error:', error);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete team',
+        error: error.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Team deleted successfully',
+    });
+  } catch (error) {
+    console.error('Server error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+
+// PUT /api/team/members/:memberId
+const updateTeamMember = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    const { role_in_team } = req.body;
+
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member ID is required',
+      });
+    }
+
+    if (!role_in_team || !role_in_team.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member role is required',
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('team_members')
+      .update({
+        role_in_team: role_in_team.trim(),
+      })
+      .eq('id', memberId)
+      .select(`
+        id,
+        team_id,
+        user_id,
+        role_in_team,
+        joined_at,
+        profiles (
+          id,
+          full_name,
+          email,
+          role,
+          github_username,
+          jira_account_id
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update team member',
+        error: error.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      teamMember: data,
+    });
+  } catch (error) {
+    console.error('Server error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+
+// DELETE /api/team/members/:memberId
+const removeTeamMember = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member ID is required',
+      });
+    }
+
+    const { error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('id', memberId);
+
+    if (error) {
+      console.error('Supabase error:', error);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to remove team member',
+        error: error.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Team member removed successfully',
+    });
+  } catch (error) {
+    console.error('Server error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getTeams,
   getTeamMembers,
   getAvailableUsers,
   createTeam,
   addTeamMember,
+  updateTeam,
+  deleteTeam,
+  updateTeamMember,
+  removeTeamMember,
 };
