@@ -6,6 +6,7 @@ export interface DraftTask {
   title: string
   description: string
   story_points: number
+  estimated_days?: number
   is_included: boolean
   suggested_developer?: string
   assignee_id?: string
@@ -72,14 +73,20 @@ export async function planSprintSchedule(
         0
       )
 
+      const totalEstimatedDays = memberTasks.reduce(
+        (sum, task) =>
+          sum +
+          (task.estimated_days !== undefined
+            ? Number(task.estimated_days)
+            : Math.max(1, Math.ceil(Number(task.story_points || 3) / 2))),
+        0
+      )
+
       return {
         developer_name: member.name,
         role: member.role_in_team || 'Member',
         assigned_points: assignedPoints,
-        estimated_days: Math.max(
-          1,
-          Math.ceil(assignedPoints / 3)
-        ),
+        estimated_days: Math.max(1, totalEstimatedDays),
         assigned_tasks_count: memberTasks.length,
       }
     })

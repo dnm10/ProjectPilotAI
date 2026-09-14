@@ -8,9 +8,11 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
+  Clock,
   Loader2,
   Plus,
   Sparkles,
+  Trash2,
   Users,
   X,
 } from 'lucide-react'
@@ -34,11 +36,24 @@ import type {
 
 import type { TeamMember } from '@/types'
 
+function getTodayDateString(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function SprintPlanningPage() {
   const [requirements, setRequirements] = useState('')
   const [sprintName, setSprintName] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [today, setToday] = useState('')
+
+  useEffect(() => {
+    setToday(getTodayDateString())
+  }, [])
 
   const [tasks, setTasks] = useState<DraftTask[]>([])
   const [schedules, setSchedules] = useState<
@@ -105,12 +120,22 @@ export default function SprintPlanningPage() {
           requirements
         )
 
-      const updatedTasks = generatedTasks.map((task) => ({
-        ...task,
-        is_included: task.is_included ?? true,
-        assignee_id: '',
-        assigned_developer_name: '',
-      }))
+      const updatedTasks = generatedTasks.map((task) => {
+        const points = Number(task.story_points) || 3
+        const days =
+          task.estimated_days !== undefined
+            ? Number(task.estimated_days)
+            : Math.max(1, Math.ceil(points / 2))
+
+        return {
+          ...task,
+          story_points: points,
+          estimated_days: days,
+          is_included: task.is_included ?? true,
+          assignee_id: '',
+          assigned_developer_name: '',
+        }
+      })
 
       setTasks(updatedTasks)
       setSchedules([])
@@ -157,8 +182,8 @@ export default function SprintPlanningPage() {
 
   function handleUpdateTask(
     taskId: string,
-    field: 'title' | 'description' | 'story_points',
-    value: string
+    field: 'title' | 'description' | 'story_points' | 'estimated_days',
+    value: string | number
   ) {
     setTasks((currentTasks) =>
       currentTasks.map((task) =>
@@ -166,11 +191,48 @@ export default function SprintPlanningPage() {
           ? {
               ...task,
               [field]:
-                field === 'story_points'
-                  ? Number(value)
+                field === 'story_points' || field === 'estimated_days'
+                  ? Math.max(1, Number(value) || 1)
                   : value,
             }
           : task
+      )
+    )
+  }
+
+  function handleDeleteTask(taskId: string) {
+    setTasks((currentTasks) =>
+      currentTasks.filter((task) => task.id !== taskId)
+    )
+  }
+
+  function handleAddTask() {
+    const newTask: DraftTask = {
+      id: `custom-task-${Date.now()}-${tasks.length + 1}`,
+      title: 'New Sprint Task',
+      description: '',
+      story_points: 3,
+      estimated_days: 2,
+      is_included: true,
+      assignee_id: '',
+      assigned_developer_name: '',
+    }
+    setTasks((currentTasks) => [...currentTasks, newTask])
+  }
+
+  function handleUpdateSchedule(
+    index: number,
+    field: 'assigned_points' | 'estimated_days',
+    value: number
+  ) {
+    setSchedules((currentSchedules) =>
+      currentSchedules.map((schedule, idx) =>
+        idx === index
+          ? {
+              ...schedule,
+              [field]: Math.max(0, value),
+            }
+          : schedule
       )
     )
   }
@@ -232,6 +294,18 @@ export default function SprintPlanningPage() {
 
     if (!startDate || !endDate) {
       setError('Please select start and end dates.')
+      return
+    }
+
+    const currentToday = getTodayDateString()
+
+    if (startDate < currentToday) {
+      setError('Start date cannot be in the past.')
+      return
+    }
+
+    if (endDate < currentToday) {
+      setError('End date cannot be in the past.')
       return
     }
 
@@ -319,6 +393,18 @@ export default function SprintPlanningPage() {
       0
     )
 
+  const totalEstimatedDays = tasks
+    .filter((task) => task.is_included)
+    .reduce(
+      (sum, task) =>
+        sum +
+        Number(
+          task.estimated_days ||
+            Math.max(1, Math.ceil(Number(task.story_points || 3) / 2))
+        ),
+      0
+    )
+
   const hasUnassignedTasks = tasks.some(
     (task) =>
       task.is_included && !task.assignee_id
@@ -332,7 +418,7 @@ export default function SprintPlanningPage() {
         <div className="flex items-center justify-between">
           <div>
             <Link
-              href="/sprints"
+              href="/sprints/board"
               className="mb-3 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
             >
               <ArrowLeft size={16} />
@@ -477,10 +563,15 @@ export default function SprintPlanningPage() {
 
                   <input
                     type="date"
+                    min={today || undefined}
                     value={startDate}
-                    onChange={(event) =>
-                      setStartDate(event.target.value)
-                    }
+                    onChange={(event) => {
+                      const val = event.target.value
+                      setStartDate(val)
+                      if (endDate && val && endDate < val) {
+                        setEndDate('')
+                      }
+                    }}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   />
                 </div>
@@ -492,6 +583,7 @@ export default function SprintPlanningPage() {
 
                   <input
                     type="date"
+                    min={startDate || today || undefined}
                     value={endDate}
                     onChange={(event) =>
                       setEndDate(event.target.value)
@@ -506,19 +598,35 @@ export default function SprintPlanningPage() {
 
         {/* Generated Tasks */}
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold text-slate-900">
                 Generated Tasks
               </h2>
 
               <p className="text-sm text-slate-500">
-                Select tasks and assign them to team members.
+                Review and customize tasks, adjust points and estimated days, or add your own.
               </p>
             </div>
 
-            <div className="rounded-lg bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700">
-              Total Points: {totalPoints}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleAddTask}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors"
+              >
+                <Plus size={14} />
+                Add Task
+              </button>
+
+              <div className="rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700">
+                Total Points: {totalPoints}
+              </div>
+
+              <div className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">
+                <Clock size={13} />
+                Est. Duration: {totalEstimatedDays} days
+              </div>
             </div>
           </div>
 
@@ -530,7 +638,7 @@ export default function SprintPlanningPage() {
               />
 
               <p className="text-sm text-slate-500">
-                Generate tasks to see them here.
+                Generate tasks or click “Add Task” to create tasks manually.
               </p>
             </div>
           ) : (
@@ -538,23 +646,24 @@ export default function SprintPlanningPage() {
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className={`rounded-xl border p-4 ${
+                  className={`rounded-xl border p-4 transition-all ${
                     task.is_included
-                      ? 'border-slate-200'
+                      ? 'border-slate-200 bg-white shadow-xs'
                       : 'border-slate-100 bg-slate-50 opacity-60'
                   }`}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3">
 
                     <button
                       type="button"
                       onClick={() =>
                         handleToggleInclude(task.id)
                       }
-                      className={`mt-1 flex h-5 w-5 items-center justify-center rounded border ${
+                      title={task.is_included ? 'Exclude from sprint' : 'Include in sprint'}
+                      className={`mt-2 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
                         task.is_included
                           ? 'border-sky-600 bg-sky-600 text-white'
-                          : 'border-slate-300 bg-white'
+                          : 'border-slate-300 bg-white hover:border-slate-400'
                       }`}
                     >
                       {task.is_included && (
@@ -562,8 +671,9 @@ export default function SprintPlanningPage() {
                       )}
                     </button>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
+                    <div className="min-w-0 flex-1 space-y-3">
+                      {/* Top Row: Title + Story Points + Estimated Days + Delete */}
+                      <div className="flex flex-wrap items-center gap-2">
                         <input
                           value={task.title}
                           onChange={(event) =>
@@ -573,14 +683,65 @@ export default function SprintPlanningPage() {
                               event.target.value
                             )
                           }
-                          className="min-w-[250px] flex-1 rounded-md border border-transparent px-2 py-1 font-semibold text-slate-900 outline-none hover:border-slate-200 focus:border-sky-400"
+                          placeholder="Task title"
+                          className="min-w-[200px] flex-1 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-sm font-semibold text-slate-900 outline-none hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-100"
                         />
 
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                          {task.story_points} points
-                        </span>
+                        {/* Story Points Editor */}
+                        <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
+                          <span className="font-medium text-slate-500">Points:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={task.story_points}
+                            onChange={(event) =>
+                              handleUpdateTask(
+                                task.id,
+                                'story_points',
+                                event.target.value
+                              )
+                            }
+                            className="w-12 rounded border border-slate-300 bg-white px-1 py-0.5 text-center text-xs font-bold text-slate-800 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-200"
+                          />
+                        </div>
+
+                        {/* Estimated Days Editor */}
+                        <div className="flex items-center gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50/70 px-2.5 py-1 text-xs">
+                          <Clock size={13} className="text-indigo-600" />
+                          <span className="font-medium text-indigo-700">Days:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={
+                              task.estimated_days !== undefined
+                                ? task.estimated_days
+                                : Math.max(1, Math.ceil((task.story_points || 3) / 2))
+                            }
+                            onChange={(event) =>
+                              handleUpdateTask(
+                                task.id,
+                                'estimated_days',
+                                event.target.value
+                              )
+                            }
+                            className="w-12 rounded border border-indigo-200 bg-white px-1 py-0.5 text-center text-xs font-bold text-indigo-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
+                          />
+                        </div>
+
+                        {/* Delete Task Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTask(task.id)}
+                          title="Delete task"
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
 
+                      {/* Description textarea */}
                       <textarea
                         value={task.description}
                         onChange={(event) =>
@@ -590,13 +751,15 @@ export default function SprintPlanningPage() {
                             event.target.value
                           )
                         }
-                        className="mt-2 min-h-16 w-full resize-none rounded-md border border-transparent px-2 py-1 text-sm text-slate-500 outline-none hover:border-slate-200 focus:border-sky-400"
+                        placeholder="Add a detailed description for this task..."
+                        className="min-h-16 w-full resize-y rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-600 outline-none hover:border-slate-300 focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-100"
                       />
 
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                          <Users size={16} />
-                          <span>Assign to:</span>
+                      {/* Bottom Row: Assign Developer */}
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                          <Users size={15} />
+                          <span>Assignee:</span>
                         </div>
 
                         <div className="relative">
@@ -612,7 +775,7 @@ export default function SprintPlanningPage() {
                               isLoadingTeamMembers ||
                               !task.is_included
                             }
-                            className="appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-9 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                            className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                           >
                             <option value="">
                               {isLoadingTeamMembers
@@ -632,15 +795,14 @@ export default function SprintPlanningPage() {
                           </select>
 
                           <ChevronDown
-                            size={15}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            size={14}
+                            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
                           />
                         </div>
 
                         {task.assigned_developer_name && (
-                          <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                            Assigned to{' '}
-                            {task.assigned_developer_name}
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                            ✓ {task.assigned_developer_name}
                           </span>
                         )}
                       </div>
@@ -727,29 +889,61 @@ export default function SprintPlanningPage() {
                 </thead>
 
                 <tbody>
-                  {schedules.map((schedule) => (
+                  {schedules.map((schedule, index) => (
                     <tr
                       key={`${schedule.developer_name}-${schedule.role}`}
-                      className="border-b border-slate-100 last:border-0"
+                      className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50"
                     >
-                      <td className="px-4 py-4 font-medium text-slate-900">
+                      <td className="px-4 py-3 font-medium text-slate-900">
                         {schedule.developer_name}
                       </td>
 
-                      <td className="px-4 py-4 text-sm text-slate-500">
+                      <td className="px-4 py-3 text-sm text-slate-500">
                         {schedule.role}
                       </td>
 
-                      <td className="px-4 py-4 text-sm text-slate-700">
-                        {schedule.assigned_points}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="0"
+                            value={schedule.assigned_points}
+                            onChange={(e) =>
+                              handleUpdateSchedule(
+                                index,
+                                'assigned_points',
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                            className="w-16 rounded-md border border-slate-200 bg-white px-2 py-1 text-sm font-semibold text-slate-800 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-200"
+                          />
+                          <span className="text-xs text-slate-400">pts</span>
+                        </div>
                       </td>
 
-                      <td className="px-4 py-4 text-sm text-slate-700">
-                        {schedule.estimated_days}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="1"
+                            value={schedule.estimated_days}
+                            onChange={(e) =>
+                              handleUpdateSchedule(
+                                index,
+                                'estimated_days',
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            className="w-16 rounded-md border border-indigo-200 bg-white px-2 py-1 text-sm font-semibold text-indigo-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
+                          />
+                          <span className="text-xs text-slate-400">days</span>
+                        </div>
                       </td>
 
-                      <td className="px-4 py-4 text-sm text-slate-700">
-                        {schedule.assigned_tasks_count}
+                      <td className="px-4 py-3 text-sm text-slate-700">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                          {schedule.assigned_tasks_count} tasks
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -762,7 +956,7 @@ export default function SprintPlanningPage() {
         {/* Bottom Actions */}
         <div className="flex justify-end gap-3 pb-6">
           <Link
-            href="/sprints"
+            href="/sprints/board"
             className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
             Cancel
