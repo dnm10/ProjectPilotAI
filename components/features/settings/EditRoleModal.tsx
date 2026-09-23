@@ -26,7 +26,9 @@ export default function EditRoleModal() {
 
   useEffect(() => {
     if (editingMember) {
-      setSelectedRole(editingMember.role_in_team)
+      setSelectedRole(
+        editingMember.role_in_team?.toLowerCase() === 'lead' ? 'lead' : 'member'
+      )
       setError(null)
       setIsSuccess(false)
     }

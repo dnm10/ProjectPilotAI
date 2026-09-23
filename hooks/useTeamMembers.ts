@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchTeamMembers, updateTeamMemberRole } from '@/lib/api/team'
 import { useSettingsStore } from '@/store/useSettingsStore'
+import { TeamMember } from '@/types'
 
-export function useTeamMembers() {
-  return useQuery({
-    queryKey: ['team-members'],
-    queryFn: fetchTeamMembers,
+export function useTeamMembers(teamId?: string) {
+  return useQuery<TeamMember[]>({
+    queryKey: ['team-members', teamId || 'default'],
+    queryFn: () => fetchTeamMembers(teamId),
   })
 }
 
