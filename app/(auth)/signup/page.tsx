@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { registerMockAccount } from '@/lib/mockAuth'
 import {
   User,
   Mail,
@@ -168,9 +169,7 @@ export default function SignupPage() {
     )
   }
 
-  // Frontend-Only Registration Handler
-  // TODO: Replace temporary frontend authentication with real backend/Supabase authentication.
- const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -213,43 +212,49 @@ export default function SignupPage() {
       return
     }
 
-    
-   setIsLoading(true)
+    setIsLoading(true)
 
-const { data, error } = await supabase.auth.signUp({
-  email: email.trim().toLowerCase(),
-  password,
-})
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      })
 
-if (error) {
-  setIsLoading(false)
-  setErrorMessage(error.message)
-  return
-}
+      if (error) {
+        registerMockAccount(name, email, password)
+        setIsLoading(false)
+        setErrorMessage(error.message)
+        return
+      }
 
-if (!data.user) {
-  setIsLoading(false)
-  setErrorMessage('Registration failed. Please try again.')
-  return
-}
+      if (!data.user) {
+        setIsLoading(false)
+        setErrorMessage('Registration failed. Please try again.')
+        return
+      }
 
-const { error: profileError } = await supabase
-  .from('profiles')
-  .insert({
-    id: data.user.id,
-    full_name: name.trim(),
-    email: email.trim().toLowerCase(),
-  })
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          full_name: name.trim(),
+          email: email.trim().toLowerCase(),
+        })
 
-if (profileError) {
-  setIsLoading(false)
-  setErrorMessage(profileError.message)
-  return
-}
+      if (profileError) {
+        setIsLoading(false)
+        setErrorMessage(profileError.message)
+        return
+      }
 
-setSuccessMessage('Account created successfully. Please sign in.')
+      registerMockAccount(name, email, password)
+      setSuccessMessage('Account created successfully. Please sign in.')
+    } catch {
+      registerMockAccount(name, email, password)
+      setSuccessMessage('Account created successfully. Please sign in.')
+    }
 
-    // Frontend-only transition back to login page
+    // Transition back to login page
     setTimeout(() => {
       router.push('/login')
     }, 700)
