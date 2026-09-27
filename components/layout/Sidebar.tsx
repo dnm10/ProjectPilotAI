@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -41,9 +42,14 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 flex items-center px-5 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center text-[#1F3864] font-bold text-sm shadow-sm">
-            P
-          </div>
+          <Image
+            src="/favicon-proj.png"
+            alt="ProjectPilot AI Logo"
+            width={28}
+            height={28}
+            className="w-7 h-7 object-contain rounded-md shrink-0"
+            priority
+          />
           <span className="font-bold text-[16px] tracking-tight text-white">
             ProjectPilot AI
           </span>

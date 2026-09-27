@@ -15,6 +15,7 @@ export interface MockUserAccount {
 }
 
 const STORAGE_KEY = 'projectpilot_mock_users_v1'
+const CURRENT_USER_KEY = 'projectpilot_mock_current_user'
 
 export function getMockAccounts(): MockUserAccount[] {
   if (typeof window === 'undefined') return []
@@ -27,11 +28,35 @@ export function getMockAccounts(): MockUserAccount[] {
   }
 }
 
+export function setMockSession(user: { name: string; email: string }) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user))
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+export function getMockSession(): { name: string; email: string } | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(CURRENT_USER_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function clearMockSession() {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(CURRENT_USER_KEY)
+}
+
 export function registerMockAccount(
   name: string,
   email: string,
   password: string
-): { success: boolean; error?: string } {
+): { success: boolean; error?: string; user?: MockUserAccount } {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Storage not available' }
   }
@@ -53,14 +78,15 @@ export function registerMockAccount(
   const newAccount: MockUserAccount = {
     name: name.trim(),
     email: normalizedEmail,
-    password, // Stored locally only for mock UI testing
+    password,
     createdAt: new Date().toISOString(),
   }
 
   try {
     accounts.push(newAccount)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts))
-    return { success: true }
+    setMockSession({ name: newAccount.name, email: newAccount.email })
+    return { success: true, user: newAccount }
   } catch {
     return { success: false, error: 'Failed to save account locally.' }
   }
@@ -90,6 +116,8 @@ export function verifyMockLogin(
       error: 'Invalid email or password.',
     }
   }
+
+  setMockSession({ name: found.name, email: found.email })
 
   return {
     success: true,

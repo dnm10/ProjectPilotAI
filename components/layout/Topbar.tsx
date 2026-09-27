@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import {
   useNotifications,
@@ -16,7 +16,33 @@ import {
   ShieldAlert,
   Users,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react'
+
+function getTopbarNotifIcon(type: string) {
+  const t = (type || '').toLowerCase()
+  if (t.includes('risk') || t.includes('scope') || t.includes('blocker')) {
+    return <ShieldAlert className="w-4 h-4 text-[#DC2626]" />
+  }
+  if (t.includes('workload') || t.includes('burnout') || t.includes('fatigue')) {
+    return <Users className="w-4 h-4 text-[#A21CAF]" />
+  }
+  if (t.includes('ticket') || t.includes('sprint') || t.includes('deadline')) {
+    return <Sparkles className="w-4 h-4 text-[#4F46E5]" />
+  }
+  return <CheckCircle2 className="w-4 h-4 text-[#16A34A]" />
+}
+
+function formatTime(isoString: string): string {
+  try {
+    return new Date(isoString).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return ''
+  }
+}
 
 export default function Topbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -28,7 +54,8 @@ export default function Topbar() {
   const deleteMutation = useDeleteNotification()
 
   const unreadCount = notifData?.unreadCount ?? 0
-  const notifications = notifData?.notifications ?? []
+  const notifications = useMemo(() => notifData?.notifications ?? [], [notifData])
+  const dropdownNotifications = useMemo(() => notifications.slice(0, 5), [notifications])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -42,17 +69,6 @@ export default function Topbar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  const getNotifIcon = (type: string) => {
-    const t = (type || '').toLowerCase()
-    if (t.includes('risk') || t.includes('scope') || t.includes('blocker')) {
-      return <ShieldAlert className="w-4 h-4 text-[#DC2626]" />
-    }
-    if (t.includes('workload') || t.includes('burnout') || t.includes('fatigue')) {
-      return <Users className="w-4 h-4 text-[#A21CAF]" />
-    }
-    return <CheckCircle2 className="w-4 h-4 text-[#4F46E5]" />
-  }
 
   return (
     <header className="h-16 fixed top-0 left-[220px] right-0 bg-white/80 backdrop-blur-md border-b border-[#E2E8F0] px-8 flex items-center justify-between z-20 select-none shadow-xs">
@@ -104,6 +120,7 @@ export default function Topbar() {
                 <div className="flex items-center gap-2">
                   {unreadCount > 0 && (
                     <button
+                      type="button"
                       onClick={() => markAllReadMutation.mutate()}
                       className="text-[11px] font-semibold text-[#4F46E5] hover:text-[#4338CA] hover:underline flex items-center gap-1 cursor-pointer"
                     >
@@ -125,12 +142,12 @@ export default function Topbar() {
                   <div className="p-8 text-center text-xs text-[#64748B]">
                     Loading...
                   </div>
-                ) : notifications.length === 0 ? (
+                ) : dropdownNotifications.length === 0 ? (
                   <div className="p-8 text-center text-xs text-[#64748B]">
                     No notifications.
                   </div>
                 ) : (
-                  notifications.slice(0, 5).map((item) => (
+                  dropdownNotifications.map((item) => (
                     <div
                       key={item.id}
                       className={`p-3.5 flex items-start gap-3 hover:bg-slate-50 transition-colors group ${
@@ -138,7 +155,7 @@ export default function Topbar() {
                       }`}
                     >
                       <div className="w-8 h-8 rounded-xl bg-white border border-[#E2E8F0] flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
-                        {getNotifIcon(item.type)}
+                        {getTopbarNotifIcon(item.type)}
                       </div>
 
                       <div className="flex-1 space-y-1">
@@ -146,16 +163,12 @@ export default function Topbar() {
                           {item.message}
                         </p>
                         <div className="flex items-center justify-between text-[11px] text-[#94A3B8]">
-                          <span>
-                            {new Date(item.created_at).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
+                          <span>{formatTime(item.created_at)}</span>
 
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             {!item.is_read && (
                               <button
+                                type="button"
                                 onClick={() => markReadMutation.mutate(item.id)}
                                 className="text-[#4F46E5] hover:text-[#4338CA] p-1 rounded cursor-pointer"
                               >
@@ -163,6 +176,7 @@ export default function Topbar() {
                               </button>
                             )}
                             <button
+                              type="button"
                               onClick={() => deleteMutation.mutate(item.id)}
                               className="text-red-500 hover:text-red-700 p-1 rounded cursor-pointer"
                             >
