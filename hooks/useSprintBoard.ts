@@ -5,10 +5,10 @@ import {
   fetchSprints,
   deleteSprint,
 } from '@/lib/api/sprints'
-import { Ticket, TicketStatus } from '@/types'
+import { Ticket, TicketStatus, Sprint } from '@/types'
 
 export function useSprintTickets(sprintId: string) {
-  return useQuery({
+  return useQuery<Ticket[]>({
     queryKey: ['tickets', sprintId],
     queryFn: () => fetchSprintTickets(sprintId),
   })
@@ -52,7 +52,7 @@ export function useUpdateTicketStatus(sprintId: string) {
 }
 
 export function useSprints() {
-  return useQuery({
+  return useQuery<Sprint[]>({
     queryKey: ['sprints'],
     queryFn: fetchSprints,
   })

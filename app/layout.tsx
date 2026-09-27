@@ -1,8 +1,3 @@
-declare module "*.css" {
-  const content: { [className: string]: string }
-  export default content
-}
-
 import type { Metadata } from "next"
 import { Inter, JetBrains_Mono } from "next/font/google"
 import QueryProvider from "../components/providers/QueryProvider"

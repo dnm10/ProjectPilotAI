@@ -19,6 +19,7 @@ export interface SimulationResponse {
 }
 
 export async function runMonteCarloSimulation(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _input: SimulationScenarioInput
 ): Promise<SimulationResponse> {
   // Simulate 500 Monte Carlo statistical trials

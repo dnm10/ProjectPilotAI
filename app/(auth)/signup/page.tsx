@@ -215,6 +215,7 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
+<<<<<<< HEAD
       const isPlaceholder =
         !process.env.NEXT_PUBLIC_SUPABASE_URL ||
         process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project')
@@ -281,6 +282,51 @@ export default function SignupPage() {
         router.push('/login')
       }, 800)
     }
+=======
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      })
+
+      if (error) {
+        registerMockAccount(name, email, password)
+        setIsLoading(false)
+        setErrorMessage(error.message)
+        return
+      }
+
+      if (!data.user) {
+        setIsLoading(false)
+        setErrorMessage('Registration failed. Please try again.')
+        return
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          full_name: name.trim(),
+          email: email.trim().toLowerCase(),
+        })
+
+      if (profileError) {
+        setIsLoading(false)
+        setErrorMessage(profileError.message)
+        return
+      }
+
+      registerMockAccount(name, email, password)
+      setSuccessMessage('Account created successfully. Please sign in.')
+    } catch {
+      registerMockAccount(name, email, password)
+      setSuccessMessage('Account created successfully. Please sign in.')
+    }
+
+    // Transition back to login page
+    setTimeout(() => {
+      router.push('/login')
+    }, 700)
+>>>>>>> 59f5a137052c60524bf7d39ed5f685fd8c8d0ba5
   }
 
   return (

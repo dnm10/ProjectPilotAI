@@ -75,7 +75,7 @@ export default function TicketDetailPage() {
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
+                  onClick={() => setActiveTab(tab.key as 'overview' | 'prs' | 'activity')}
                   className={`py-3.5 px-4 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
                     activeTab === tab.key
                       ? 'border-[#4F46E5] text-[#4F46E5] font-semibold'

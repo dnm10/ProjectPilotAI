@@ -253,7 +253,7 @@ export default function SimulationPage() {
                         stroke="#E2E8F0"
                       />
                       <Tooltip
-                        formatter={(value: any) => [`${value}% Likelihood`, 'Probability']}
+                        formatter={(value: unknown) => [`${value}% Likelihood`, 'Probability']}
                         contentStyle={{
                           backgroundColor: '#FFFFFF',
                           borderRadius: '8px',
