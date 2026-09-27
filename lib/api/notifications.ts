@@ -4,7 +4,7 @@ export interface NotificationItem {
   id: string
   user_id?: string
   team_id?: string
-  type: 'risk_alert' | 'workload_warning' | 'sprint_update' | 'ticket_assigned' | 'system'
+  type: string
   message: string
   related_entity_type?: string
   related_entity_id?: string
@@ -37,7 +37,19 @@ export async function fetchNotifications(
       return getFallbackNotifications()
     }
 
-    return response.json()
+    const data = await response.json()
+    const list: NotificationItem[] = Array.isArray(data.notifications)
+      ? data.notifications
+      : []
+
+    const unread = list.filter((n) => !n.is_read).length
+
+    return {
+      success: true,
+      count: list.length,
+      unreadCount: typeof data.unreadCount === 'number' ? data.unreadCount : unread,
+      notifications: list,
+    }
   } catch {
     return getFallbackNotifications()
   }

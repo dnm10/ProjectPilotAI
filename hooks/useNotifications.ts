@@ -4,6 +4,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
+  NotificationsResponse,
 } from '@/lib/api/notifications'
 
 export function useNotifications(isRead?: boolean) {
@@ -19,7 +20,29 @@ export function useMarkNotificationRead() {
 
   return useMutation({
     mutationFn: (id: string) => markNotificationAsRead(id),
-    onSuccess: () => {
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previousData = queryClient.getQueryData<NotificationsResponse>(['notifications', undefined])
+
+      if (previousData) {
+        const updatedList = previousData.notifications.map((item) =>
+          item.id === id ? { ...item, is_read: true } : item
+        )
+        queryClient.setQueryData<NotificationsResponse>(['notifications', undefined], {
+          ...previousData,
+          unreadCount: Math.max(0, updatedList.filter((n) => !n.is_read).length),
+          notifications: updatedList,
+        })
+      }
+
+      return { previousData }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['notifications', undefined], context.previousData)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
     },
@@ -31,7 +54,30 @@ export function useMarkAllNotificationsRead() {
 
   return useMutation({
     mutationFn: () => markAllNotificationsAsRead(),
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previousData = queryClient.getQueryData<NotificationsResponse>(['notifications', undefined])
+
+      if (previousData) {
+        const updatedList = previousData.notifications.map((item) => ({
+          ...item,
+          is_read: true,
+        }))
+        queryClient.setQueryData<NotificationsResponse>(['notifications', undefined], {
+          ...previousData,
+          unreadCount: 0,
+          notifications: updatedList,
+        })
+      }
+
+      return { previousData }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['notifications', undefined], context.previousData)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] })
     },
@@ -43,7 +89,28 @@ export function useDeleteNotification() {
 
   return useMutation({
     mutationFn: (id: string) => deleteNotification(id),
-    onSuccess: () => {
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previousData = queryClient.getQueryData<NotificationsResponse>(['notifications', undefined])
+
+      if (previousData) {
+        const updatedList = previousData.notifications.filter((item) => item.id !== id)
+        queryClient.setQueryData<NotificationsResponse>(['notifications', undefined], {
+          ...previousData,
+          count: updatedList.length,
+          unreadCount: updatedList.filter((n) => !n.is_read).length,
+          notifications: updatedList,
+        })
+      }
+
+      return { previousData }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['notifications', undefined], context.previousData)
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })

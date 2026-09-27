@@ -31,30 +31,66 @@ export default function NotificationsPage() {
   const deleteMutation = useDeleteNotification()
 
   const allNotifications = notifData?.notifications ?? []
-  const unreadCount = notifData?.unreadCount ?? 0
+  const unreadCount = notifData?.unreadCount ?? allNotifications.filter((n) => !n.is_read).length
+
+  const riskNotifications = allNotifications.filter((n) => {
+    const t = (n.type || '').toLowerCase()
+    return (
+      t.includes('risk') ||
+      t.includes('scope') ||
+      t.includes('blocker') ||
+      t.includes('deadline')
+    )
+  })
+
+  const workloadNotifications = allNotifications.filter((n) => {
+    const t = (n.type || '').toLowerCase()
+    return (
+      t.includes('workload') ||
+      t.includes('burnout') ||
+      t.includes('fatigue') ||
+      t.includes('overload')
+    )
+  })
 
   const filteredNotifications = allNotifications.filter((n) => {
     if (activeTab === 'unread') return !n.is_read
-    if (activeTab === 'risk_alert') return n.type === 'risk_alert'
-    if (activeTab === 'workload_warning') return n.type === 'workload_warning'
+    const t = (n.type || '').toLowerCase()
+    if (activeTab === 'risk_alert') {
+      return (
+        t.includes('risk') ||
+        t.includes('scope') ||
+        t.includes('blocker') ||
+        t.includes('deadline')
+      )
+    }
+    if (activeTab === 'workload_warning') {
+      return (
+        t.includes('workload') ||
+        t.includes('burnout') ||
+        t.includes('fatigue') ||
+        t.includes('overload')
+      )
+    }
     return true
   })
 
   const getNotifIcon = (type: string) => {
-    switch (type) {
-      case 'risk_alert':
-        return <ShieldAlert className="w-5 h-5 text-[#DC2626]" />
-      case 'workload_warning':
-        return <Users className="w-5 h-5 text-[#A21CAF]" />
-      case 'ticket_assigned':
-        return <Sparkles className="w-5 h-5 text-[#4F46E5]" />
-      default:
-        return <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
+    const t = (type || '').toLowerCase()
+    if (t.includes('risk') || t.includes('scope') || t.includes('blocker')) {
+      return <ShieldAlert className="w-5 h-5 text-[#DC2626]" />
     }
+    if (t.includes('workload') || t.includes('burnout') || t.includes('fatigue')) {
+      return <Users className="w-5 h-5 text-[#A21CAF]" />
+    }
+    if (t.includes('ticket') || t.includes('sprint') || t.includes('deadline')) {
+      return <Sparkles className="w-5 h-5 text-[#4F46E5]" />
+    }
+    return <CheckCircle2 className="w-5 h-5 text-[#16A34A]" />
   }
 
   const getPriorityBadge = (score?: number) => {
-    if (!score) return null
+    if (score === undefined || score === null) return null
     if (score >= 0.8) {
       return (
         <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-[#DC2626] border border-red-200">
@@ -138,7 +174,7 @@ export default function NotificationsPage() {
               : 'bg-white text-[#64748B] hover:bg-slate-50 border border-[#E2E8F0]'
           }`}
         >
-          Risk Radar Alerts
+          Risk Radar Alerts ({riskNotifications.length})
         </button>
 
         <button
@@ -149,7 +185,7 @@ export default function NotificationsPage() {
               : 'bg-white text-[#64748B] hover:bg-slate-50 border border-[#E2E8F0]'
           }`}
         >
-          Workload &amp; Burnout
+          Workload &amp; Burnout ({workloadNotifications.length})
         </button>
       </div>
 

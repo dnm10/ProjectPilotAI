@@ -46,14 +46,14 @@ export default function Topbar() {
   }, [])
 
   const getNotifIcon = (type: string) => {
-    switch (type) {
-      case 'risk_alert':
-        return <ShieldAlert className="w-4 h-4 text-[#DC2626]" />
-      case 'workload_warning':
-        return <Users className="w-4 h-4 text-[#A21CAF]" />
-      default:
-        return <CheckCircle2 className="w-4 h-4 text-[#4F46E5]" />
+    const t = (type || '').toLowerCase()
+    if (t.includes('risk') || t.includes('scope') || t.includes('blocker')) {
+      return <ShieldAlert className="w-4 h-4 text-[#DC2626]" />
     }
+    if (t.includes('workload') || t.includes('burnout') || t.includes('fatigue')) {
+      return <Users className="w-4 h-4 text-[#A21CAF]" />
+    }
+    return <CheckCircle2 className="w-4 h-4 text-[#4F46E5]" />
   }
 
   return (
