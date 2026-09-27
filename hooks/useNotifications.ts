@@ -53,22 +53,27 @@ export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => markAllNotificationsAsRead(),
+    mutationFn: (params?: { userId?: string; teamId?: string }) =>
+      markAllNotificationsAsRead(params?.userId, params?.teamId),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] })
       const previousData = queryClient.getQueryData<NotificationsResponse>(['notifications', undefined])
 
-      if (previousData) {
-        const updatedList = previousData.notifications.map((item) => ({
-          ...item,
-          is_read: true,
-        }))
-        queryClient.setQueryData<NotificationsResponse>(['notifications', undefined], {
-          ...previousData,
-          unreadCount: 0,
-          notifications: updatedList,
-        })
-      }
+      queryClient.setQueriesData<NotificationsResponse>(
+        { queryKey: ['notifications'] },
+        (old) => {
+          if (!old) return old
+          const updatedList = old.notifications.map((item) => ({
+            ...item,
+            is_read: true,
+          }))
+          return {
+            ...old,
+            unreadCount: 0,
+            notifications: updatedList,
+          }
+        }
+      )
 
       return { previousData }
     },

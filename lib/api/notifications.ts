@@ -119,11 +119,12 @@ export async function markNotificationAsRead(id: string) {
   }
 }
 
-export async function markAllNotificationsAsRead() {
+export async function markAllNotificationsAsRead(userId?: string, teamId?: string) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, team_id: teamId }),
     })
     return response.json()
   } catch {
