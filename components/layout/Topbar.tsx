@@ -117,7 +117,12 @@ export default function Topbar() {
               </div>
 
               {/* Notification Items */}
-              <div className="max-h-[340px] overflow-y-auto divide-y divide-[#E2E8F0]">
+              <div
+                className="max-h-[340px] overflow-y-auto divide-y divide-[#E2E8F0] overscroll-contain scroll-smooth"
+                onWheel={(e) => {
+                  e.stopPropagation()
+                }}
+              >
                 {isLoading ? (
                   <div className="p-8 text-center text-xs text-[#64748B]">
                     Loading...
