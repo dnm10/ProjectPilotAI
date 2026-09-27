@@ -12,11 +12,13 @@ const sprintRoutes = require('./routes/sprintRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 app.use('/api/sprints', sprintRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.json({

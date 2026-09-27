@@ -1,9 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SECRET_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  'placeholder_key';
 
-module.exports = supabase;
+if (!process.env.SUPABASE_URL) {
+  console.warn('⚠️ Warning: SUPABASE_URL is not set in .env. Using placeholder for local startup.');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+module.exports = supabase;
