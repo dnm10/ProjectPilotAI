@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchSprintTickets, updateTicketStatus } from '@/lib/api/sprints'
+import {
+  fetchSprintTickets,
+  updateTicketStatus,
+  fetchSprints,
+  deleteSprint,
+} from '@/lib/api/sprints'
 import { Ticket, TicketStatus } from '@/types'
 
 export function useSprintTickets(sprintId: string) {
@@ -42,6 +47,25 @@ export function useUpdateTicketStatus(sprintId: string) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets', sprintId] })
+    },
+  })
+}
+
+export function useSprints() {
+  return useQuery({
+    queryKey: ['sprints'],
+    queryFn: fetchSprints,
+  })
+}
+
+export function useDeleteSprint() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (sprintId: string) => deleteSprint(sprintId),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sprints'] })
     },
   })
 }

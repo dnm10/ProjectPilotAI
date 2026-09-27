@@ -1,19 +1,36 @@
 import { useMutation } from '@tanstack/react-query'
+
 import {
   generateTasksFromRequirements,
   planSprintSchedule,
-  DraftTask,
 } from '@/lib/api/planning'
 
+import type {
+  DraftTask,
+  DeveloperSchedule,
+} from '@/lib/api/planning'
+
+import type { TeamMember } from '@/types'
+
 export function useGenerateTasks() {
-  return useMutation({
+  return useMutation<DraftTask[], Error, string>({
     mutationFn: (requirements: string) =>
       generateTasksFromRequirements(requirements),
   })
 }
 
 export function usePlanSprint() {
-  return useMutation({
-    mutationFn: (tasks: DraftTask[]) => planSprintSchedule(tasks),
+  return useMutation<
+    DeveloperSchedule[],
+    Error,
+    {
+      tasks: DraftTask[]
+      teamMembers: TeamMember[]
+    }
+  >({
+    mutationFn: ({
+      tasks,
+      teamMembers,
+    }) => planSprintSchedule(tasks, teamMembers),
   })
 }

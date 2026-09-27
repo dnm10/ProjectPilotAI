@@ -1,7 +1,21 @@
 'use client'
 
 import React from 'react'
-import { Settings, CheckCircle2, Users } from 'lucide-react'
+import { Settings, Shield, RefreshCw } from 'lucide-react'
+import {
+  useIntegrations,
+  useDisconnectGitHub,
+  useDisconnectJira,
+} from '@/hooks/useIntegrations'
+import { useTeamMembers, useCurrentUserRole } from '@/hooks/useTeamMembers'
+import { useSettingsStore } from '@/store/useSettingsStore'
+import { toast } from '@/lib/toast'
+import IntegrationCard from '@/components/features/settings/IntegrationCard'
+import GitHubConnectModal from '@/components/features/settings/GitHubConnectModal'
+import JiraConnectModal from '@/components/features/settings/JiraConnectModal'
+import TeamMembersCard from '@/components/features/settings/TeamMembersCard'
+import EditRoleModal from '@/components/features/settings/EditRoleModal'
+import SettingsSkeleton from '@/components/features/settings/SettingsSkeleton'
 
 function GitHubIcon({ className }: { className?: string }) {
   return (
@@ -16,100 +30,137 @@ function GitHubIcon({ className }: { className?: string }) {
 }
 
 export default function SettingsIntegrationsPage() {
-  const members = [
-    { name: 'Team Zenith', email: 'lead@projectpilot.ai', role: 'Lead' },
-    { name: 'Aditi Sharma', email: 'aditi@projectpilot.ai', role: 'Member' },
-    { name: 'Rohan Verma', email: 'rohan@projectpilot.ai', role: 'Member' },
-    { name: 'Meera Iyer', email: 'meera@projectpilot.ai', role: 'Member' },
-    { name: 'Kabir Mehta', email: 'kabir@projectpilot.ai', role: 'Member' },
-  ]
+  const { data: integrations, isLoading: isIntegrationsLoading } = useIntegrations()
+  const { data: teamMembers, isLoading: isTeamLoading } = useTeamMembers()
+  const { isLead } = useCurrentUserRole()
+
+  const { openGitHubModal, openJiraModal } = useSettingsStore()
+  const { mutate: disconnectGitHubMutation, isPending: isDisconnectingGh } = useDisconnectGitHub()
+  const { mutate: disconnectJiraMutation, isPending: isDisconnectingJira } = useDisconnectJira()
+
+  const handleDisconnectGitHub = () => {
+    disconnectGitHubMutation(undefined, {
+      onSuccess: () => {
+        toast.info('GitHub repository disconnected', 'Integration Removed')
+      },
+    })
+  }
+
+  const handleDisconnectJira = () => {
+    disconnectJiraMutation(undefined, {
+      onSuccess: () => {
+        toast.info('Jira workspace disconnected', 'Integration Removed')
+      },
+    })
+  }
+
+  const isPageLoading = isIntegrationsLoading && isTeamLoading
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-[24px] font-bold text-[#0F172A] tracking-tight flex items-center gap-2">
-          <Settings className="w-6 h-6 text-[#1F3864]" />
-          Settings &amp; Integrations
-        </h1>
-        <p className="text-[13px] text-[#64748B] mt-0.5">
-          Connect your GitHub repository, Jira workspace, and manage team access.
-        </p>
-      </div>
-
-      {/* Integration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* GitHub Card */}
-        <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#1F3864] text-white flex items-center justify-center font-bold">
-                <GitHubIcon className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-[#0F172A]">GitHub Integration</h3>
-                <p className="text-[12px] text-[#64748B]">dnm10/ProjectPilotAI</p>
-              </div>
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-[24px] font-bold text-[#0F172A] tracking-tight flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#1F3864] flex items-center justify-center border border-[#E2E8F0] shadow-xs">
+              <Settings className="w-5 h-5" />
             </div>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              Connected
-            </span>
-          </div>
-          <p className="text-[12px] text-[#64748B]">
-            Webhooks active for commit telemetry, PR reviews, and line-level risk checks.
+            Settings &amp; Integrations
+          </h1>
+          <p className="text-[13px] text-[#64748B] mt-1">
+            Manage repository webhooks, issue tracking pipelines, and team access permissions.
           </p>
         </div>
 
-        {/* Jira Card */}
-        <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
-                Jira
-              </div>
-              <div>
-                <h3 className="text-[14px] font-bold text-[#0F172A]">Jira Software</h3>
-                <p className="text-[12px] text-[#64748B]">ZENITH-BOARD (Sprint 3)</p>
-              </div>
-            </div>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              Connected
-            </span>
-          </div>
-          <p className="text-[12px] text-[#64748B]">
-            Syncing sprint backlog, story points, ticket status transitions, and issue comments.
-          </p>
+        {/* Global Status Chip */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-xl border border-[#E2E8F0] shadow-2xs self-start sm:self-auto text-[12px] text-slate-700">
+          <Shield className="w-3.5 h-3.5 text-[#1F3864]" />
+          <span>Access Level:</span>
+          <span
+            className={`font-bold px-2 py-0.5 rounded-md ${
+              isLead ? 'bg-[#1F3864] text-white' : 'bg-slate-100 text-slate-700'
+            }`}
+          >
+            {isLead ? 'Lead Admin' : 'Team Member'}
+          </span>
         </div>
       </div>
 
-      {/* Team Members List */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 shadow-sm space-y-4">
-        <h3 className="text-[15px] font-bold text-[#0F172A] flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#4F46E5]" />
-          Team Members (Lead Managed)
-        </h3>
-
-        <div className="divide-y divide-[#E2E8F0]">
-          {members.map((m) => (
-            <div key={m.email} className="py-3 flex items-center justify-between">
-              <div>
-                <p className="text-[13px] font-bold text-[#0F172A]">{m.name}</p>
-                <p className="text-[12px] text-[#64748B]">{m.email}</p>
-              </div>
-              <span
-                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                  m.role === 'Lead'
-                    ? 'bg-[#1F3864] text-white'
-                    : 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                {m.role}
+      {isPageLoading ? (
+        <SettingsSkeleton />
+      ) : (
+        <>
+          {/* Top Section: GitHub & Jira Cards Side by Side */}
+          <div>
+            <div className="flex items-center justify-between mb-3.5">
+              <h2 className="text-[14px] font-bold uppercase tracking-wider text-[#64748B]">
+                Connected Development Services
+              </h2>
+              <span className="text-[11px] text-[#64748B] flex items-center gap-1">
+                <RefreshCw className="w-3 h-3 text-[#4F46E5]" />
+                Real-time webhook telemetry
               </span>
             </div>
-          ))}
-        </div>
-      </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* GitHub Integration Card */}
+              <IntegrationCard
+                config={integrations?.github}
+                isLoading={isIntegrationsLoading}
+                onConnect={openGitHubModal}
+                onDisconnect={handleDisconnectGitHub}
+                isDisconnecting={isDisconnectingGh}
+                icon={<GitHubIcon className="w-6 h-6 text-[#1F3864]" />}
+                description="Webhooks active for commit telemetry, pull request reviews, and line-level risk checks."
+                features={[
+                  'Commit velocity & diff telemetry',
+                  'PR review status & code coverage delta',
+                  'Automated closed-loop commit matching',
+                ]}
+              />
+
+              {/* Jira Integration Card */}
+              <IntegrationCard
+                config={integrations?.jira}
+                isLoading={isIntegrationsLoading}
+                onConnect={openJiraModal}
+                onDisconnect={handleDisconnectJira}
+                isDisconnecting={isDisconnectingJira}
+                icon={
+                  <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                    Jira
+                  </div>
+                }
+                description="Syncing sprint backlog, story points, ticket status transitions, and issue comments."
+                features={[
+                  'Live sprint backlog and burndown sync',
+                  'Story point & ticket transition tracking',
+                  'Monte Carlo schedule simulation data',
+                ]}
+              />
+            </div>
+          </div>
+
+          {/* Bottom Section: Team Members Card */}
+          <div>
+            <div className="flex items-center justify-between mb-3.5">
+              <h2 className="text-[14px] font-bold uppercase tracking-wider text-[#64748B]">
+                Workspace Access &amp; Governance
+              </h2>
+            </div>
+
+            <TeamMembersCard
+              members={teamMembers}
+              isLoading={isTeamLoading}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Dialog Modals */}
+      <GitHubConnectModal />
+      <JiraConnectModal />
+      <EditRoleModal />
     </div>
   )
 }

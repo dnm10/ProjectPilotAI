@@ -62,9 +62,8 @@ export interface TeamMember {
   id: string
   name: string
   email: string
-  avatar_url?: string
   initials: string
-  role_in_team: 'lead' | 'member'
+  role_in_team: string
   current_workload_percentage: number
 }
 

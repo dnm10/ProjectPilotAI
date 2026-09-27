@@ -15,6 +15,7 @@ import {
   FileText,
   MessageSquare,
   Settings,
+  Users,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { name: 'Meetings', href: '/meetings', icon: Video },
   { name: 'Risk Overview', href: '/risk', icon: ShieldAlert },
   { name: 'Workload', href: '/workload', icon: BarChart3 },
+  { name: 'Team', href: '/team', icon: Users },
   { name: 'What-If Simulation', href: '/simulation', icon: Sparkles },
   { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Chat Assistant', href: '/chat', icon: MessageSquare },

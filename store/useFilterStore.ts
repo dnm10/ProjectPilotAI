@@ -12,7 +12,7 @@ interface FilterState {
 export const useFilterStore = create<FilterState>((set) => ({
   selectedAssignee: 'all',
   selectedRiskType: 'all',
-  selectedSprintId: 'sprint-3',
+  selectedSprintId: '',
   setSelectedAssignee: (assignee) => set({ selectedAssignee: assignee }),
   setSelectedRiskType: (riskType) => set({ selectedRiskType: riskType }),
   setSelectedSprintId: (sprintId) => set({ selectedSprintId: sprintId }),
