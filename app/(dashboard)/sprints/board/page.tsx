@@ -12,7 +12,7 @@ import {
 } from '@/hooks/useSprintBoard'
 import KanbanColumn from '@/components/features/sprints/KanbanColumn'
 import { TicketStatus } from '@/types'
-import { Plus, Users, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 
 const COLUMNS: { status: TicketStatus; title: string }[] = [
   { status: 'todo', title: 'To Do' },
@@ -25,7 +25,6 @@ export default function SprintBoardPage() {
   const {
     selectedSprintId,
     selectedAssignee,
-    setSelectedAssignee,
     setSelectedSprintId,
   } = useFilterStore()
 
