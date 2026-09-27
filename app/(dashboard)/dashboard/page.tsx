@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { data: stats, isLoading: statsLoading } = useDashboardStats()
+  const { data: stats } = useDashboardStats()
   const { data: topRisks, isLoading: risksLoading } = useTopRisks()
   const { data: workload, isLoading: workloadLoading } = useWorkloadSummary()
   const { data: activity, isLoading: activityLoading } = useRecentActivity()

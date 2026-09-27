@@ -15,7 +15,6 @@ export default function RiskExplainPanel({
   riskType = 'Code-Aware',
   reasons = [],
   isBurnout = false,
-  compact = false,
 }: RiskExplainPanelProps) {
   const riskConfig = isBurnout ? BURNOUT_COLOR_CONFIG : getRiskConfig(score)
   const maxContribution = Math.max(...reasons.map((r) => r.contribution), 30)
