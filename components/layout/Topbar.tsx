@@ -16,8 +16,6 @@ import {
   ShieldAlert,
   Users,
   CheckCircle2,
-  Clock,
-  ExternalLink,
 } from 'lucide-react'
 
 export default function Topbar() {

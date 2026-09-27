@@ -15,7 +15,6 @@ import {
   Users,
   CheckCircle2,
   Clock,
-  Filter,
   Sparkles,
   Inbox,
 } from 'lucide-react'
