@@ -1,155 +1,111 @@
-const supabase = require('../config/supabase')
+const { SprintService, SprintServiceError } = require('../services/sprintService');
 
-const getSprintTickets = async (req, res) => {
-  try {
-    const { sprintId } = req.params
+/**
+ * Sprint Controller
+ * Thin HTTP Controller dispatching requests to SprintService.
+ */
+class SprintController {
+  static async getSprints(req, res) {
+    try {
+      const { team_id, status } = req.query;
+      const sprints = await SprintService.listSprints({ team_id, status });
 
-    if (!sprintId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Sprint ID is required',
-      })
-    }
-
-    // Fetch tickets without using a foreign-key join
-    const { data: tickets, error: ticketsError } = await supabase
-      .from('tickets')
-      .select('*')
-      .eq('sprint_id', sprintId)
-      .order('created_at', { ascending: true })
-
-    if (ticketsError) {
-      console.error('Tickets fetch error:', ticketsError)
-
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch sprint tickets',
-        error: ticketsError.message,
-      })
-    }
-
-    // Collect assigned profile IDs
-    const assignedIds = [
-      ...new Set(
-        (tickets || [])
-          .map((ticket) => ticket.assignee_id)
-          .filter(Boolean)
-      ),
-    ]
-
-    let profiles = []
-
-    // Fetch profiles only when assigned IDs exist
-    if (assignedIds.length > 0) {
-      const { data: profileData, error: profilesError } =
-        await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', assignedIds)
-
-      if (profilesError) {
-        console.error('Profiles fetch error:', profilesError)
-
-        return res.status(500).json({
+      return res.status(200).json({
+        success: true,
+        count: sprints.length,
+        sprints,
+      });
+    } catch (error) {
+      if (error instanceof SprintServiceError) {
+        return res.status(error.statusCode).json({
           success: false,
-          message: 'Failed to fetch assigned profiles',
-          error: profilesError.message,
-        })
+          message: error.message,
+        });
       }
-
-      profiles = profileData || []
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message,
+      });
     }
-
-    // Attach the matching profile to each ticket
-    const ticketsWithProfiles = (tickets || []).map((ticket) => ({
-      ...ticket,
-      profiles:
-        profiles.find(
-          (profile) => profile.id === ticket.assignee_id
-        ) || null,
-    }))
-
-    return res.status(200).json({
-      success: true,
-      tickets: ticketsWithProfiles,
-    })
-  } catch (error) {
-    console.error('Server error:', error)
-
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    })
   }
-}
 
-const deleteSprint = async (req, res) => {
-  try {
-    const { sprintId } = req.params
-
-    if (!sprintId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Sprint ID is required',
-      })
-    }
-
-    // Delete tickets belonging to this sprint
-    const { error: ticketsError } = await supabase
-      .from('tickets')
-      .delete()
-      .eq('sprint_id', sprintId)
-
-    if (ticketsError) {
-      console.error('Error deleting tickets:', ticketsError)
-
+  static async createSprint(req, res) {
+    try {
+      const sprint = await SprintService.createSprint(req.body);
+      return res.status(201).json({
+        success: true,
+        message: 'Sprint created successfully',
+        sprint,
+      });
+    } catch (error) {
+      if (error instanceof SprintServiceError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
       return res.status(500).json({
         success: false,
-        message: 'Failed to delete sprint tickets',
-        error: ticketsError.message,
-      })
+        message: 'Internal server error',
+        error: error.message,
+      });
     }
+  }
 
-    // Delete the sprint
-    const { data, error: sprintError } = await supabase
-      .from('sprints')
-      .delete()
-      .eq('id', sprintId)
-      .select()
+  static async getSprintTickets(req, res) {
+    try {
+      const { sprintId } = req.params;
+      const tickets = await SprintService.getSprintTickets(sprintId);
 
-    if (sprintError) {
-      console.error('Error deleting sprint:', sprintError)
-
+      return res.status(200).json({
+        success: true,
+        tickets,
+      });
+    } catch (error) {
+      if (error instanceof SprintServiceError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
       return res.status(500).json({
         success: false,
-        message: 'Failed to delete sprint',
-        error: sprintError.message,
-      })
+        message: 'Internal server error',
+        error: error.message,
+      });
     }
+  }
 
-    if (!data || data.length === 0) {
-      return res.status(404).json({
+  static async deleteSprint(req, res) {
+    try {
+      const { sprintId } = req.params;
+      const sprint = await SprintService.deleteSprint(sprintId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Sprint deleted successfully',
+        sprint,
+      });
+    } catch (error) {
+      if (error instanceof SprintServiceError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      return res.status(500).json({
         success: false,
-        message: 'Sprint not found',
-      })
+        message: 'Internal server error',
+        error: error.message,
+      });
     }
-
-    return res.status(200).json({
-      success: true,
-      message: 'Sprint deleted successfully',
-      sprint: data[0],
-    })
-  } catch (error) {
-    console.error('Server error:', error)
-
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    })
   }
 }
 
 module.exports = {
-  getSprintTickets,
-  deleteSprint,
-}
+  getSprints: SprintController.getSprints,
+  createSprint: SprintController.createSprint,
+  getSprintTickets: SprintController.getSprintTickets,
+  deleteSprint: SprintController.deleteSprint,
+};

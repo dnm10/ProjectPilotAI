@@ -1,0 +1,552 @@
+================================================================================
+PROJECTPILOT AI — COMPLETE BACKEND ARCHITECTURE & BUILD GUIDE (NODE.JS / EXPRESS)
+================================================================================
+
+1. EXECUTIVE ARCHITECTURE SUMMARY
+--------------------------------------------------------------------------------
+The ProjectPilot AI backend is built with a Layered MVC (Model-Schema-Service-Controller-Routes) 
+pattern on Node.js (Express) using Supabase PostgreSQL.
+
+Technology Stack Overview:
+  * API Framework:      Express.js (Node.js 18+ / 20+)
+  * Architectural Pattern: Layered MVC + Service Layer + Data Access Models
+  * Database:           PostgreSQL hosted on Supabase
+  * Data Access Layer:  @supabase/supabase-js with Service Role / RLS integration
+  * Validation & Schemas: Strict Schema validation & Serialization layer (Zod / Schemas)
+  * Authentication:     Supabase Auth JWT
+  * Authorization:      Express Auth Middleware + Team RBAC (Member vs Lead)
+  * Background Queues:  BullMQ / Redis (or Async Workers for ingestion & ML tasks)
+  * AI & LLM Engine:    Groq SDK (groq-sdk), LangChain.js
+  * Audio Transcription: OpenAI / Groq Whisper API for meeting audio
+  * ML & Risk Scoring:  XGBoost / ONNX Runtime + SHAP Explainability Engine
+  * Vector Store (RAG): pgvector in Supabase (or Chroma / LangChain VectorStore)
+  * Integrations:       GitHub REST API / Webhooks & Jira Cloud REST API
+  * Test Suite:         Node.js Test Runner (node:test) & node:assert / Supertest
+  * Deployment:         Vercel / Docker Container / Node.js Server
+
+Data Flow Architecture:
+  Next.js Frontend (Hooks / React Query)
+        ↓  (HTTP REST Request with Bearer JWT)
+  Express Routing Layer (routes/)
+        ↓
+  Authentication & RBAC Middleware (middleware/auth.js)
+        ↓
+  Thin Controller Layer (controllers/)
+        ↓
+  Service Layer (services/ — Business Logic, Aggregations, Cross-team rules)
+        ↓
+  Model / Data Access Layer (models/ — Supabase PostgreSQL Queries)
+        ↓
+  PostgreSQL Database (Supabase with RLS & Triggers)
+
+
+================================================================================
+2. COMPLETE NODE.JS MVC DIRECTORY & FILE STRUCTURE
+================================================================================
+
+ProjectPilotAI-Backend/
+├── config/
+│   ├── supabase.js             # Supabase Client initialization (Service Role / Anon)
+│   ├── env.js                  # Environment variables validation & configuration
+│   └── redis.js                # Redis / BullMQ connection (for async jobs)
+│
+├── middleware/
+│   ├── authMiddleware.js       # Supabase JWT extraction, decoding, and req.user attachment
+│   ├── requireLead.js          # RBAC guard: restricts lead-only data (e.g. Burnout scores)
+│   ├── validateSchema.js       # Generic schema validation middleware
+│   └── errorHandler.js         # Centralized error and 404 response handler
+│
+├── models/
+│   ├── userModel.js            # profiles table data operations
+│   ├── teamModel.js            # teams & team_members operations
+│   ├── sprintModel.js          # sprints table operations
+│   ├── ticketModel.js          # tickets table operations
+│   ├── commitModel.js          # commits table operations
+│   ├── pullRequestModel.js     # pull_requests table operations
+│   ├── riskModel.js            # risk_scores table operations (shared delay, code, burnout)
+│   ├── meetingModel.js         # meetings & action_items operations
+│   ├── workloadModel.js        # workload_snapshots operations
+│   ├── simulationModel.js      # simulation_runs operations
+│   ├── reportModel.js          # reports table operations
+│   ├── notificationModel.js    # notifications operations
+│   ├── chatModel.js            # chat_messages & document_embeddings operations
+│   └── integrationModel.js     # integrations table operations (OAuth credentials)
+│
+├── schemas/
+│   ├── authSchema.js           # Auth & profile request/response serialization
+│   ├── teamSchema.js           # Team creation and member validation
+│   ├── sprintSchema.js         # Sprint creation, status, and payload validation
+│   ├── ticketSchema.js         # Ticket validation and status transitions
+│   ├── riskSchema.js           # Risk scores, SHAP explanations serialization
+│   ├── meetingSchema.js        # Meeting upload, transcripts, action items schemas
+│   ├── workloadSchema.js       # Workload snapshots and burnout schemas
+│   ├── simulationSchema.js     # Simulation scenario parameters and output schemas
+│   ├── reportSchema.js         # Technical / Stakeholder report validation & filters
+│   ├── notificationSchema.js   # Notification validation & filters
+│   └── chatSchema.js           # RAG Chatbot queries and prompt schemas
+│
+├── services/
+│   ├── authService.js          # User profile synchronization and session checks
+│   ├── teamService.js          # Team creation, roster management, role assignments
+│   ├── sprintService.js        # Sprint lifecycle, velocity calculations
+│   ├── ticketService.js        # Ticket CRUD, status transitions, developer assignments
+│   ├── githubService.js        # GitHub commits/PR ingestion & webhook reconciliation
+│   ├── jiraService.js          # Jira issue synchronization
+│   ├── taskGeneratorService.js # AI task generation using Groq LLM
+│   ├── sprintPlannerService.js # AI Sprint capacity & story point planning
+│   ├── meetingService.js       # Audio upload, Whisper transcription & summarization
+│   ├── actionItemService.js    # Closed-loop meeting action items verification
+│   ├── riskService.js          # ML Risk scoring (Delay, Code-Aware, Burnout) & SHAP
+│   ├── workloadService.js      # Workload aggregation & lead-only burnout telemetry
+│   ├── simulationService.js    # Monte Carlo sprint timeline simulations (500+ runs)
+│   ├── reportService.js        # Weekly technical and stakeholder reports delivery
+│   ├── chatService.js          # RAG Chatbot with pgvector / Chroma embeddings
+│   └── notificationService.js  # Notifications dispatcher & realtime alerts
+│
+├── controllers/
+│   ├── authController.js       # GET /api/auth/me, PATCH /api/users/me
+│   ├── teamController.js       # /api/team endpoints
+│   ├── sprintController.js     # /api/sprints endpoints
+│   ├── ticketController.js     # /api/tickets endpoints
+│   ├── integrationController.js# /api/integrations (GitHub, Jira OAuth)
+│   ├── webhookController.js    # /api/webhooks (GitHub event listener)
+│   ├── meetingController.js    # /api/meetings and /api/action-items
+│   ├── riskController.js       # /api/risk endpoints
+│   ├── workloadController.js   # /api/workload endpoints
+│   ├── simulationController.js # /api/simulation endpoints
+│   ├── reportController.js     # /api/reports and /reports endpoints
+│   ├── chatController.js       # /api/chat endpoints
+│   ├── notificationController.js # /api/notifications endpoints
+│   └── dashboardController.js  # /api/dashboard summary & activity feed
+│
+├── routes/
+│   ├── authRoutes.js
+│   ├── teamRoutes.js
+│   ├── sprintRoutes.js
+│   ├── ticketRoutes.js
+│   ├── integrationRoutes.js
+│   ├── webhookRoutes.js
+│   ├── meetingRoutes.js
+│   ├── riskRoutes.js
+│   ├── workloadRoutes.js
+│   ├── simulationRoutes.js
+│   ├── reportRoutes.js
+│   ├── chatRoutes.js
+│   ├── notificationRoutes.js
+│   └── dashboardRoutes.js
+│
+├── workers/
+│   ├── queue.js                # BullMQ / Async Queue manager
+│   ├── githubWorker.js         # Commits and PRs batch processor
+│   ├── meetingWorker.js        # Background Whisper transcription processor
+│   ├── verificationWorker.js   # Closed-loop action item verification job
+│   ├── riskCalculationWorker.js# Periodic ML risk computation & SHAP attribution
+│   └── reportGeneratorWorker.js# Scheduled weekly AI report generator
+│
+├── migrations/
+│   ├── 001_create_reports_table.sql
+│   ├── 002_create_sprints_and_tickets_tables.sql
+│   ├── 003_create_notifications_table.sql
+│   └── 004_create_core_tables.sql
+│
+├── tests/
+│   ├── auth.test.js
+│   ├── team.test.js
+│   ├── sprint.test.js
+│   ├── ticket.test.js
+│   ├── report.test.js
+│   ├── notification.test.js
+│   ├── risk.test.js
+│   └── meeting.test.js
+│
+├── server.js                   # Express application setup, route mounting, error handling
+├── package.json                # Dependencies and scripts
+└── .env                        # Secrets and connection strings
+
+
+================================================================================
+3. DATABASE SCHEMA & KEY ARCHITECTURAL DECISIONS
+================================================================================
+
+3.1 Core Database Tables (PostgreSQL / Supabase)
+
+1. PROFILES (users)
+   id (UUID, PK references auth.users.id)
+   full_name (TEXT)
+   email (TEXT)
+   role (TEXT: 'developer', 'lead', 'manager')
+   github_username (TEXT)
+   jira_account_id (TEXT)
+   created_at (TIMESTAMPTZ)
+
+2. TEAMS
+   id (UUID, PK)
+   name (TEXT)
+   github_repo_url (TEXT)
+   jira_project_key (TEXT)
+   created_by (UUID references profiles.id)
+   created_at (TIMESTAMPTZ)
+   updated_at (TIMESTAMPTZ)
+
+3. TEAM_MEMBERS
+   id (UUID, PK)
+   team_id (UUID references teams.id ON DELETE CASCADE)
+   user_id (UUID references profiles.id ON DELETE CASCADE)
+   role_in_team (TEXT: 'member', 'lead')
+   joined_at (TIMESTAMPTZ)
+   UNIQUE(team_id, user_id)
+
+4. SPRINTS
+   id (UUID, PK)
+   team_id (UUID references teams.id ON DELETE CASCADE)
+   name (TEXT NOT NULL)
+   start_date (DATE)
+   end_date (DATE)
+   planned_velocity (NUMERIC)
+   actual_velocity (NUMERIC)
+   status (TEXT: 'planned', 'active', 'completed')
+   created_at (TIMESTAMPTZ)
+
+5. TICKETS
+   id (UUID, PK)
+   team_id (UUID references teams.id ON DELETE CASCADE)
+   sprint_id (UUID references sprints.id ON DELETE SET NULL)
+   jira_ticket_key (TEXT)
+   title (TEXT NOT NULL)
+   description (TEXT)
+   status (TEXT: 'todo', 'in_progress', 'in_review', 'done')
+   story_points (NUMERIC)
+   priority (TEXT: 'low', 'medium', 'high', 'critical')
+   assignee_id (UUID references profiles.id ON DELETE SET NULL)
+   ai_generated (BOOLEAN DEFAULT false)
+   created_at (TIMESTAMPTZ)
+   updated_at (TIMESTAMPTZ)
+
+6. COMMITS
+   id (UUID, PK)
+   ticket_id (UUID references tickets.id ON DELETE SET NULL)
+   team_id (UUID references teams.id ON DELETE CASCADE)
+   author_id (UUID references profiles.id ON DELETE SET NULL)
+   sha (TEXT UNIQUE NOT NULL)
+   message (TEXT)
+   files_changed (JSONB)
+   lines_added (INT DEFAULT 0)
+   lines_removed (INT DEFAULT 0)
+   committed_at (TIMESTAMPTZ)
+   created_at (TIMESTAMPTZ)
+
+7. PULL_REQUESTS
+   id (UUID, PK)
+   ticket_id (UUID references tickets.id ON DELETE SET NULL)
+   team_id (UUID references teams.id ON DELETE CASCADE)
+   author_id (UUID references profiles.id ON DELETE SET NULL)
+   pr_number (INT NOT NULL)
+   title (TEXT)
+   lines_added (INT DEFAULT 0)
+   lines_removed (INT DEFAULT 0)
+   files_changed (INT DEFAULT 0)
+   test_coverage_delta (NUMERIC)
+   review_count (INT DEFAULT 0)
+   status (TEXT: 'open', 'merged', 'closed')
+   opened_at (TIMESTAMPTZ)
+   merged_at (TIMESTAMPTZ)
+   created_at (TIMESTAMPTZ)
+
+8. RISK_SCORES (Universal Shared Risk Table)
+   id (UUID, PK)
+   team_id (UUID references teams.id ON DELETE CASCADE)
+   entity_type (TEXT: 'ticket', 'pull_request', 'user')
+   entity_id (UUID NOT NULL)
+   risk_type (TEXT: 'delay', 'code_aware', 'burnout')
+   score (NUMERIC CHECK (score >= 0 AND score <= 100))
+   shap_explanation (JSONB: { "reasons": [ { "feature": "...", "weight": 0.28 } ] })
+   model_version (TEXT)
+   computed_at (TIMESTAMPTZ DEFAULT now())
+
+   * Design Rationale:
+     Instead of creating fragmented tables (delay_risks, code_risks, burnout_risks), 
+     one polymorphic table powers:
+       - Delay Predictor (entity_type='ticket', risk_type='delay')
+       - Code-Aware Risk (entity_type='pull_request', risk_type='code_aware')
+       - Lead-Only Burnout (entity_type='user', risk_type='burnout')
+
+9. MEETINGS
+   id (UUID, PK)
+   team_id (UUID references teams.id ON DELETE CASCADE)
+   title (TEXT)
+   audio_url (TEXT)
+   transcript_text (TEXT)
+   meeting_date (TIMESTAMPTZ)
+   uploaded_by (UUID references profiles.id)
+   created_at (TIMESTAMPTZ)
+
+10. ACTION_ITEMS (Closed-Loop Meeting Verification)
+    id (UUID, PK)
+    meeting_id (UUID references meetings.id ON DELETE CASCADE)
+    ticket_id (UUID references tickets.id ON DELETE SET NULL)
+    owner_id (UUID references profiles.id)
+    description (TEXT NOT NULL)
+    due_date (DATE)
+    status (TEXT: 'pending', 'verified_done', 'flagged_incomplete')
+    verification_reason (TEXT)
+    verified_at (TIMESTAMPTZ)
+    created_at (TIMESTAMPTZ)
+
+11. WORKLOAD_SNAPSHOTS
+    id (UUID, PK)
+    user_id (UUID references profiles.id ON DELETE CASCADE)
+    team_id (UUID references teams.id ON DELETE CASCADE)
+    week_start (DATE NOT NULL)
+    commits_count (INT DEFAULT 0)
+    prs_count (INT DEFAULT 0)
+    ticket_load (INT DEFAULT 0)
+    after_hours_ratio (NUMERIC DEFAULT 0)
+    weekend_ratio (NUMERIC DEFAULT 0)
+    created_at (TIMESTAMPTZ)
+    UNIQUE(user_id, week_start)
+
+12. SIMULATION_RUNS (Monte Carlo Sprint Simulation)
+    id (UUID, PK)
+    sprint_id (UUID references sprints.id ON DELETE CASCADE)
+    team_id (UUID references teams.id ON DELETE CASCADE)
+    scenario_description (TEXT NOT NULL)
+    input_params (JSONB)
+    output_results (JSONB: { "p50": "...", "p90": "...", "risk_distribution": [...] })
+    run_by (UUID references profiles.id)
+    created_at (TIMESTAMPTZ)
+
+13. REPORTS (Weekly Stakeholder & Engineering Reports)
+    id (UUID, PK)
+    team_id (UUID references teams.id ON DELETE CASCADE)
+    week_start (DATE NOT NULL)
+    technical_version_text (TEXT)
+    stakeholder_version_text (TEXT)
+    created_at (TIMESTAMPTZ)
+    updated_at (TIMESTAMPTZ)
+
+14. NOTIFICATIONS
+    id (UUID, PK)
+    user_id (UUID references profiles.id ON DELETE CASCADE)
+    team_id (UUID references teams.id ON DELETE CASCADE)
+    type (TEXT NOT NULL)
+    message (TEXT NOT NULL)
+    related_entity_type (TEXT)
+    related_entity_id (UUID)
+    priority_score (NUMERIC DEFAULT 0)
+    is_read (BOOLEAN DEFAULT false)
+    created_at (TIMESTAMPTZ)
+
+15. CHAT_MESSAGES & DOCUMENT_EMBEDDINGS (RAG Chatbot)
+    chat_messages: id, team_id, user_id, role ('user'|'assistant'), content, referenced_entities, created_at
+    document_embeddings: id, team_id, source_type ('ticket'|'meeting'|'report'), source_id, content_chunk, embedding (vector(384)), created_at
+
+16. INTEGRATIONS (Encrypted OAuth Tokens)
+    id (UUID, PK)
+    team_id (UUID references teams.id ON DELETE CASCADE)
+    provider (TEXT: 'github', 'jira')
+    access_token_encrypted (TEXT NOT NULL)
+    refresh_token_encrypted (TEXT)
+    expires_at (TIMESTAMPTZ)
+    external_account_id (TEXT)
+    status (TEXT: 'connected', 'expired', 'disconnected')
+    created_at (TIMESTAMPTZ)
+    updated_at (TIMESTAMPTZ)
+
+
+================================================================================
+4. COMPLETE BACKEND REST API ENDPOINTS MAP
+================================================================================
+
+4.1 System & Health
+  GET    /api/health                       -> Server health check
+  GET    /api/ready                        -> Database & Redis readiness check
+
+4.2 Authentication & User Profiles
+  GET    /api/auth/me                      -> Get current authenticated user profile
+  PATCH  /api/users/me                     -> Update own profile details (full_name, github_username)
+
+4.3 Teams & Team Members
+  GET    /api/team/list                    -> List all teams
+  GET    /api/team?team_id=<id>            -> Get team roster with members & profiles
+  GET    /api/team/users                   -> Get available users to add
+  POST   /api/team                         -> Create a new team
+  PUT    /api/team/:teamId                 -> Update team details (name, repo_url, jira_key)
+  DELETE /api/team/:teamId                 -> Delete team
+  POST   /api/team/members                 -> Add member to team
+  PUT    /api/team/members/:memberId       -> Update member role ('member' | 'lead')
+  DELETE /api/team/members/:memberId       -> Remove member from team
+
+4.4 Sprints Management
+  GET    /api/sprints?team_id=<id>         -> List sprints for team (with status filter)
+  POST   /api/sprints                      -> Create new sprint (with planned velocity)
+  GET    /api/sprints/:sprintId            -> Get sprint details
+  PATCH  /api/sprints/:sprintId            -> Update sprint status or velocity
+  GET    /api/sprints/:sprintId/tickets    -> Get all tickets for a sprint with assignee profiles
+  DELETE /api/sprints/:sprintId            -> Delete sprint and its tickets
+
+4.5 Tickets & Kanban Board
+  GET    /api/tickets?sprint_id=<id>       -> List/filter tickets
+  POST   /api/tickets                      -> Create tickets in batch or single
+  GET    /api/tickets/:ticketId            -> Get ticket detail
+  PATCH  /api/tickets/:ticketId            -> Update ticket title, description, points, assignee
+  PATCH  /api/tickets/:ticketId/status     -> Update ticket status (todo -> in_progress -> in_review -> done)
+  GET    /api/tickets/:ticketId/commits    -> Get commits linked to ticket
+  GET    /api/tickets/:ticketId/pull-requests -> Get PRs linked to ticket
+
+4.6 AI Planning & Task Generation (Groq LLM)
+  POST   /api/ai/generate-tasks            -> AI Task Generator from requirements prompt
+  POST   /api/ai/plan-sprint               -> AI Sprint Planner (allocates story points & tasks)
+
+4.7 GitHub & Jira Integrations
+  GET    /api/integrations/github/authorize-> Start GitHub OAuth flow
+  GET    /api/integrations/github/callback -> Complete GitHub OAuth flow
+  GET    /api/integrations/github/status   -> Check GitHub connection status
+  DELETE /api/integrations/github          -> Disconnect GitHub integration
+  GET    /api/integrations/jira/authorize  -> Start Jira OAuth flow
+  GET    /api/integrations/jira/callback   -> Complete Jira OAuth flow
+  POST   /api/webhooks/github              -> Handle GitHub Push, PR, and Review webhooks
+  POST   /api/sync/github                  -> Trigger manual reconciliation of GitHub commits/PRs
+  POST   /api/sync/jira                    -> Trigger manual reconciliation of Jira issues
+
+4.8 Meetings & Closed-Loop Verification
+  POST   /api/meetings/upload              -> Upload meeting recording to Supabase Storage
+  GET    /api/meetings?team_id=<id>        -> List meetings for team
+  GET    /api/meetings/:meetingId          -> Meeting transcript and details
+  GET    /api/meetings/:meetingId/action-items -> Action items for specific meeting
+  GET    /api/action-items?team_id=<id>    -> List all team action items
+  PATCH  /api/action-items/:id             -> Update action item status / verification reason
+
+4.9 Explainable Risk Engine (XGBoost + SHAP)
+  GET    /api/risk/tickets/:ticketId       -> Delay risk score & SHAP explanation factors
+  GET    /api/risk/prs/:prId               -> Code-aware risk score & test coverage impact
+  GET    /api/risk/team-summary?team_id=.. -> Aggregated team risk distribution
+  GET    /api/risk                         -> Filterable risk records table
+
+4.10 Workload & Burnout Telemetry
+  GET    /api/workload/team?team_id=..     -> Team workload snapshots (commits, PRs, after-hours)
+  GET    /api/workload/user/:userId        -> Individual developer workload telemetry
+  GET    /api/workload/burnout?team_id=..  -> Lead-only burnout predictions & risk factors
+
+4.11 Monte Carlo Simulation
+  POST   /api/simulation/run               -> Execute Monte Carlo sprint timeline simulation
+  GET    /api/simulation/:simulationId     -> Retrieve simulation percentiles (P50, P90) & distribution
+
+4.12 Reports Module
+  GET    /api/reports/latest?version=..    -> Latest report (technical | stakeholder | both)
+  GET    /api/reports/:reportId            -> Get report by ID (with cross-team access check)
+  GET    /api/reports?team_id=..           -> List all historical weekly reports
+  POST   /api/reports/generate             -> Trigger manual report generation
+
+4.13 RAG Chatbot
+  POST   /api/chat/message                 -> Ask chatbot with grounded pgvector RAG retrieval
+  GET    /api/chat/history?team_id=..      -> Get team chat history
+
+4.14 Notifications
+  GET    /api/notifications?user_id=..     -> List notifications with unread/type filters
+  POST   /api/notifications                -> Create notification alert
+  PATCH  /api/notifications/:id/read       -> Mark single notification as read
+  PATCH  /api/notifications/read-all       -> Bulk mark notifications read (user_id/team_id required)
+  DELETE /api/notifications/:id            -> Delete notification
+
+4.15 Dashboard Statistics
+  GET    /api/dashboard/summary?team_id=.. -> High-level stats (Sprint progress, Open Risks, Velocity)
+  GET    /api/dashboard/activity?team_id=. -> Real-time activity timeline stream
+
+
+================================================================================
+5. STANDARD API JSON RESPONSE CONVENTIONS
+================================================================================
+
+Success Response:
+{
+  "success": true,
+  "data": { ... },
+  "message": "Resource fetched successfully"
+}
+
+List / Paginated Response:
+{
+  "success": true,
+  "count": 25,
+  "data": [ ... ],
+  "pagination": {
+    "offset": 0,
+    "limit": 25,
+    "total": 120
+  }
+}
+
+Error Response:
+{
+  "success": false,
+  "message": "Invalid version parameter 'executive'. Allowed values: technical, stakeholder",
+  "error": "BAD_REQUEST"
+}
+
+
+================================================================================
+6. AUTHENTICATION & AUTHORIZATION PIPELINE
+================================================================================
+
+1. JWT Extraction:
+   * Client sends: `Authorization: Bearer <supabase_jwt_token>`
+   * `authMiddleware.js` verifies the token with Supabase:
+     ```js
+     const { data: { user }, error } = await supabase.auth.getUser(token);
+     if (error || !user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+     req.user = user;
+     ```
+
+2. Team Context & Multi-Tenancy Resolution:
+   * Service layer resolves user team membership:
+     ```js
+     const { data: member } = await supabase
+       .from('team_members')
+       .select('team_id, role_in_team')
+       .eq('user_id', req.user.id)
+       .maybeSingle();
+     ```
+   * Any resource accessed must match `req.team_id`. Cross-team queries strictly return 404.
+
+3. Role-Based Access Control (Lead vs Member):
+   * Burnout scores and sensitive workload features are guarded by `requireLead` middleware:
+     ```js
+     if (member.role_in_team !== 'lead') {
+       return res.status(403).json({ success: false, message: 'Forbidden: Team Lead access required' });
+     }
+     ```
+
+
+================================================================================
+7. STEP-BY-STEP IMPLEMENTATION ROADMAP
+================================================================================
+
+Phase 1: Core Foundation & MVC Refactoring (COMPLETED)
+  - Unified Express server with centralized error handling & health checks.
+  - Implemented Model-Schema-Service-Controller for Reports, Sprints, and Notifications.
+  - Setup Supabase Database Migrations for Reports, Sprints, Tickets, and Notifications.
+  - Added automated test suites (26 passing tests).
+
+Phase 2: Teams, Users, and Integrations
+  - Complete `teamModel.js`, `teamService.js`, `teamSchema.js`.
+  - Implement GitHub OAuth & Webhook receiver (`/api/webhooks/github`).
+  - Implement Jira OAuth & Issue sync (`/api/sync/jira`).
+
+Phase 3: Meetings & Closed-Loop Verification
+  - Audio upload to Supabase Storage bucket `meeting-audio`.
+  - Whisper transcription worker.
+  - Background verification worker for action items.
+
+Phase 4: ML Risk Engine & SHAP Explainability
+  - Train XGBoost Delay & Burnout classifiers.
+  - Compute SHAP values and store JSON explanations in `risk_scores`.
+  - Expose `/api/risk` endpoints.
+
+Phase 5: Monte Carlo Simulation & Weekly Reports Agent
+  - Implement Monte Carlo sprint simulation engine (500+ iterations).
+  - Connect Groq LLM reporting agent for automated weekly summaries.
+
+Phase 6: RAG Chatbot & Realtime Live Alerts
+  - Generate pgvector embeddings for tickets, meetings, and reports.
+  - Connect Supabase Realtime for instant notification toasts in the Next.js frontend.
+================================================================================

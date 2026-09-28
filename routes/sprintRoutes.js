@@ -1,18 +1,17 @@
 const express = require('express');
 const {
+  getSprints,
+  createSprint,
   getSprintTickets,
   deleteSprint,
 } = require('../controllers/sprintController');
-const { createSprint } = require('../controllers/sprintCreateController');
-const { getSprints } = require('../controllers/sprintListController');
 
 const router = express.Router();
 
-
+// Sprint CRUD & tickets
 router.get('/', getSprints);
-router.get('/:sprintId/tickets', getSprintTickets);
-
 router.post('/', createSprint);
+router.get('/:sprintId/tickets', getSprintTickets);
 router.delete('/:sprintId', deleteSprint);
 
 module.exports = router;

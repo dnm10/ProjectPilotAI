@@ -2,30 +2,32 @@ const supabase = require('../config/supabase')
 
 const createTickets = async (req, res) => {
   try {
-    const { sprint_id, tickets } = req.body
+    const { sprint_id, team_id, tickets } = req.body;
 
     if (!sprint_id) {
       return res.status(400).json({
         success: false,
         message: 'Sprint ID is required',
-      })
+      });
     }
 
     if (!tickets || !Array.isArray(tickets) || tickets.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'At least one ticket is required',
-      })
+      });
     }
 
     const ticketRows = tickets.map((ticket) => ({
+      team_id: ticket.team_id || team_id || null,
       sprint_id,
+      jira_ticket_key: ticket.jira_ticket_key || null,
       title: ticket.title,
       description: ticket.description || null,
       status: ticket.status || 'todo',
       story_points: ticket.story_points || 0,
       priority: ticket.priority || 'medium',
-      ai_generated: true,
+      ai_generated: ticket.ai_generated !== undefined ? ticket.ai_generated : true,
       assignee_id: ticket.assignee_id || null,
     }))
 

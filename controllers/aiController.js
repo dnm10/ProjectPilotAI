@@ -55,11 +55,12 @@ Rules:
 
     const content = completion.choices[0]?.message?.content;
 
-    if (!content) {
-      throw new Error('No response received from Groq');
+    let cleanContent = content.trim();
+    if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     }
 
-    const result = JSON.parse(content);
+    const result = JSON.parse(cleanContent);
 
     const tasks = result.tasks.map((task, index) => ({
       id: `draft-${Date.now()}-${index}`,

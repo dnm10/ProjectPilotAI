@@ -137,7 +137,7 @@ const getAvailableUsers = async (req, res) => {
 // POST /api/team
 const createTeam = async (req, res) => {
   try {
-    const { name, created_by } = req.body;
+    const { name, created_by, github_repo_url, jira_project_key } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -158,6 +158,8 @@ const createTeam = async (req, res) => {
       .insert({
         name: name.trim(),
         created_by,
+        github_repo_url: github_repo_url || null,
+        jira_project_key: jira_project_key || null,
       })
       .select()
       .single();
@@ -276,7 +278,7 @@ const addTeamMember = async (req, res) => {
 const updateTeam = async (req, res) => {
   try {
     const { teamId } = req.params;
-    const { name } = req.body;
+    const { name, github_repo_url, jira_project_key } = req.body;
 
     if (!teamId) {
       return res.status(400).json({
@@ -285,18 +287,33 @@ const updateTeam = async (req, res) => {
       });
     }
 
-    if (!name || !name.trim()) {
+    const updates = {};
+    if (name !== undefined) {
+      if (!name || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Team name cannot be empty',
+        });
+      }
+      updates.name = name.trim();
+    }
+    if (github_repo_url !== undefined) {
+      updates.github_repo_url = github_repo_url || null;
+    }
+    if (jira_project_key !== undefined) {
+      updates.jira_project_key = jira_project_key || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Team name is required',
+        message: 'At least one field (name, github_repo_url, jira_project_key) is required to update',
       });
     }
 
     const { data, error } = await supabase
       .from('teams')
-      .update({
-        name: name.trim(),
-      })
+      .update(updates)
       .eq('id', teamId)
       .select()
       .single();
