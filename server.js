@@ -14,6 +14,7 @@ const aiRoutes = require('./routes/aiRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 app.use('/api/sprints', sprintRoutes);
 app.use('/api/tickets', ticketRoutes);
@@ -22,6 +23,7 @@ app.use('/api/team', teamRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/reports', reportRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health Check
 app.get('/', (req, res) => {
