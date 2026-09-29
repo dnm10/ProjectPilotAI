@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { WorkloadItem } from '@/lib/api/dashboard'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { Users, ArrowUpRight } from 'lucide-react'
 
 interface WorkloadBarListProps {
@@ -9,10 +10,12 @@ interface WorkloadBarListProps {
 }
 
 export default function WorkloadBarList({ workloads = [], loading }: WorkloadBarListProps) {
-  if (loading) {
+  if (loading && workloads.length === 0) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] p-8 text-center text-sm text-[#64748B]">
-        Loading workload...
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] p-6 shadow-xs space-y-3">
+        <Skeleton className="h-6 w-32 rounded-md" />
+        <Skeleton className="h-8 w-full rounded-lg" />
+        <Skeleton className="h-8 w-full rounded-lg" />
       </div>
     )
   }

@@ -5,6 +5,7 @@ import { useFilterStore } from '@/store/useFilterStore'
 import { useAllRiskScores } from '@/hooks/useRiskOverview'
 import RiskExplainPanel from '@/components/features/tickets/RiskExplainPanel'
 import { getRiskConfig } from '@/lib/riskColor'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { ShieldAlert, ChevronDown, ChevronUp, Clock } from 'lucide-react'
 
 const FILTER_CHIPS = [
@@ -89,7 +90,18 @@ export default function RiskOverviewPage() {
       {/* Full-Width Risk Table Card */}
       <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-[#64748B] text-center">Loading risk control room...</div>
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 last:border-0">
+                <Skeleton className="h-5 w-48 rounded-md" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-16 rounded-md" />
+                <Skeleton className="h-4 w-52 rounded-md" />
+                <Skeleton className="h-5 w-28 rounded-md" />
+                <Skeleton className="h-4 w-20 rounded-md" />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">

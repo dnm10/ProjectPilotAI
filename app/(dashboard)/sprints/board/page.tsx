@@ -11,6 +11,8 @@ import {
   useDeleteSprint,
 } from '@/hooks/useSprintBoard'
 import KanbanColumn from '@/components/features/sprints/KanbanColumn'
+import SprintBoardSkeleton from '@/components/features/sprints/SprintBoardSkeleton'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { TicketStatus } from '@/types'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -22,6 +24,7 @@ const COLUMNS: { status: TicketStatus; title: string }[] = [
 ]
 
 export default function SprintBoardPage() {
+  const [mounted, setMounted] = React.useState(false)
   const {
     selectedSprintId,
     selectedAssignee,
@@ -33,16 +36,23 @@ export default function SprintBoardPage() {
   const deleteSprintMutation = useDeleteSprint()
 
   React.useEffect(() => {
+    setMounted(true)
     if (!selectedSprintId && sprints.length > 0) {
       setSelectedSprintId(sprints[0].id)
     }
   }, [selectedSprintId, sprints, setSelectedSprintId])
 
+  const effectiveSprintId = selectedSprintId || sprints[0]?.id || ''
+
   const { data: tickets = [], isLoading } =
-    useSprintTickets(selectedSprintId)
+    useSprintTickets(effectiveSprintId)
 
   const updateStatusMutation =
-    useUpdateTicketStatus(selectedSprintId)
+    useUpdateTicketStatus(effectiveSprintId)
+
+  if (!mounted || (isLoading && tickets.length === 0)) {
+    return <SprintBoardSkeleton />
+  }
 
   // Filter by assignee if quick-filter is active
   const filteredTickets =
@@ -108,6 +118,10 @@ export default function SprintBoardPage() {
     })
   }
 
+  const currentSprint =
+    sprints.find((sprint) => sprint.id === effectiveSprintId) ||
+    sprints[0]
+
   return (
     <div className="space-y-6">
       {/* Top Header Bar */}
@@ -117,40 +131,42 @@ export default function SprintBoardPage() {
             Sprint Board
           </h1>
 
-          <p className="text-[13px] text-[#64748B] mt-0.5">
-            {sprints.find(
-              (sprint) => sprint.id === selectedSprintId
-            )?.name || 'No sprint selected'}
-            {' • '}
-            {sprints.find(
-              (sprint) => sprint.id === selectedSprintId
-            )?.start_date || ''}
-            {' – '}
-            {sprints.find(
-              (sprint) => sprint.id === selectedSprintId
-            )?.end_date || ''}
-          </p>
+          {currentSprint ? (
+            <p className="text-[13px] text-[#64748B] mt-0.5">
+              {currentSprint.name}
+              {currentSprint.start_date && currentSprint.end_date
+                ? ` • ${currentSprint.start_date} – ${currentSprint.end_date}`
+                : ''}
+            </p>
+          ) : (
+            <div className="pt-1">
+              <Skeleton className="h-4 w-48 rounded-md" />
+            </div>
+          )}
         </div>
 
         {/* Controls */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-
           {/* Sprint Selector */}
-          <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px]">
-            <select
-              value={selectedSprintId}
-              onChange={(e) =>
-                setSelectedSprintId(e.target.value)
-              }
-              className="bg-transparent text-[13px] font-medium text-[#0F172A] focus:outline-none cursor-pointer"
-            >
-              {sprints.map((sprint) => (
-                <option key={sprint.id} value={sprint.id}>
-                  {sprint.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {sprints.length > 0 ? (
+            <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px] shadow-2xs">
+              <select
+                value={selectedSprintId || currentSprint?.id}
+                onChange={(e) =>
+                  setSelectedSprintId(e.target.value)
+                }
+                className="bg-transparent text-[13px] font-medium text-[#0F172A] focus:outline-none cursor-pointer"
+              >
+                {sprints.map((sprint) => (
+                  <option key={sprint.id} value={sprint.id}>
+                    {sprint.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          )}
 
           {/* Quick Assignee Filter */}
           {/* <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-lg text-[13px]">
@@ -200,14 +216,9 @@ export default function SprintBoardPage() {
       </div>
 
       {/* 4-Column Drag & Drop Board */}
-      {isLoading ? (
-        <div className="p-8 text-[#64748B]">
-          Loading sprint board...
-        </div>
-      ) : (
-        <DndContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {COLUMNS.map((col) => (
+      <DndContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {COLUMNS.map((col) => (
               <KanbanColumn
                 key={col.status}
                 status={col.status}
@@ -219,7 +230,6 @@ export default function SprintBoardPage() {
             ))}
           </div>
         </DndContext>
-      )}
     </div>
   )
 }

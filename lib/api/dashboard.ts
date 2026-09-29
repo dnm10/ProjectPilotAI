@@ -45,6 +45,18 @@ function getStoredTeamId(): string | null {
   return null
 }
 
+const DASHBOARD_CACHE_KEY = 'projectpilot_dashboard_summary_cache'
+
+export function getCachedDashboardSummary(teamId?: string): DashboardSummaryResponse | undefined {
+  if (typeof window === 'undefined') return undefined
+  try {
+    const targetId = teamId || getStoredTeamId() || 'default'
+    const raw = localStorage.getItem(`${DASHBOARD_CACHE_KEY}_${targetId}`)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return undefined
+}
+
 export async function fetchDashboardSummary(teamId?: string): Promise<DashboardSummaryResponse> {
   try {
     const targetTeamId = teamId || getStoredTeamId()
@@ -62,7 +74,7 @@ export async function fetchDashboardSummary(teamId?: string): Promise<DashboardS
     }
 
     const data = await response.json()
-    return {
+    const result: DashboardSummaryResponse = {
       success: true,
       teamName: data.teamName || 'Team',
       stats: data.stats || {
@@ -77,6 +89,14 @@ export async function fetchDashboardSummary(teamId?: string): Promise<DashboardS
       workload: Array.isArray(data.workload) ? data.workload : [],
       activity: Array.isArray(data.activity) ? data.activity : [],
     }
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`${DASHBOARD_CACHE_KEY}_${targetTeamId || 'default'}`, JSON.stringify(result))
+      } catch {}
+    }
+
+    return result
   } catch (error) {
     console.warn('Failed to fetch dashboard summary from backend:', error)
     return {

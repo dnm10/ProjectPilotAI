@@ -4,6 +4,8 @@ import {
   updateTicketStatus,
   fetchSprints,
   deleteSprint,
+  getCachedSprintTickets,
+  getCachedSprints,
 } from '@/lib/api/sprints'
 import { Ticket, TicketStatus, Sprint } from '@/types'
 
@@ -11,6 +13,9 @@ export function useSprintTickets(sprintId: string) {
   return useQuery<Ticket[]>({
     queryKey: ['tickets', sprintId],
     queryFn: () => fetchSprintTickets(sprintId),
+    placeholderData: () => getCachedSprintTickets(sprintId),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   })
 }
 
@@ -55,6 +60,9 @@ export function useSprints() {
   return useQuery<Sprint[]>({
     queryKey: ['sprints'],
     queryFn: fetchSprints,
+    placeholderData: () => getCachedSprints(),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   })
 }
 

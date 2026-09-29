@@ -5,12 +5,22 @@ import {
   fetchTopRisks,
   fetchWorkloadSummary,
   fetchRecentActivity,
+  getCachedDashboardSummary,
 } from '@/lib/api/dashboard'
 
 export function useDashboardSummary(teamId?: string) {
+  const activeTeamId =
+    teamId ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('projectpilot_team_id') || undefined
+      : undefined)
+
   return useQuery({
-    queryKey: ['dashboard', 'summary', teamId],
-    queryFn: () => fetchDashboardSummary(teamId),
+    queryKey: ['dashboard', 'summary', activeTeamId],
+    queryFn: () => fetchDashboardSummary(activeTeamId),
+    placeholderData: () => getCachedDashboardSummary(activeTeamId),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   })
 }
 

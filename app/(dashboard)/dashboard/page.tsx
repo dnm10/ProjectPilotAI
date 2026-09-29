@@ -9,6 +9,7 @@ import StatCard from '@/components/features/dashboard/StatCard'
 import TopRisksList from '@/components/features/dashboard/TopRisksList'
 import WorkloadBarList from '@/components/features/dashboard/WorkloadBarList'
 import ActivityFeed from '@/components/features/dashboard/ActivityFeed'
+import DashboardSkeleton from '@/components/features/dashboard/DashboardSkeleton'
 import {
   TrendingUp,
   AlertTriangle,
@@ -20,9 +21,11 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false)
   const [teamId, setTeamId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
+    setMounted(true)
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('projectpilot_team_id')
       if (stored) setTeamId(stored)
@@ -41,6 +44,10 @@ export default function DashboardPage() {
     day: 'numeric',
     month: 'long',
   })
+
+  if (!mounted || (isLoading && !summary)) {
+    return <DashboardSkeleton />
+  }
 
   return (
     <div className="relative space-y-6">
@@ -69,6 +76,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             href="/simulation"
+            prefetch={true}
             className="flex items-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all shadow-sm hover:shadow-md hover:scale-102"
           >
             <Play className="w-3.5 h-3.5 fill-white" />
@@ -76,6 +84,7 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/sprints/plan"
+            prefetch={true}
             className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0] px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all shadow-xs"
           >
             <CalendarDays className="w-3.5 h-3.5 text-[#4F46E5]" />
@@ -83,6 +92,7 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/chat"
+            prefetch={true}
             className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0] px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all shadow-xs"
           >
             <MessageSquare className="w-3.5 h-3.5 text-[#4F46E5]" />
