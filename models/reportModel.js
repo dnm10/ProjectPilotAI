@@ -80,6 +80,43 @@ class ReportModel {
   }
 
   /**
+   * Find report by team ID and specific week_start.
+   * @param {string} teamId
+   * @param {string} weekStart
+   * @returns {Promise<{data: object|null, error: object|null}>}
+   */
+  static async findByTeamAndWeek(teamId, weekStart) {
+    let query = supabase
+      .from('reports')
+      .select('*')
+      .eq('team_id', teamId);
+
+    if (weekStart) {
+      query = query.eq('week_start', weekStart);
+    } else {
+      query = query.order('week_start', { ascending: false });
+    }
+
+    const { data, error } = await query.limit(1).maybeSingle();
+    return { data, error };
+  }
+
+  /**
+   * List all available distinct report weeks for a team.
+   * @param {string} teamId
+   * @returns {Promise<{data: array|null, error: object|null}>}
+   */
+  static async findWeeksByTeamId(teamId) {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('id, week_start, created_at')
+      .eq('team_id', teamId)
+      .order('week_start', { ascending: false });
+
+    return { data: data || [], error };
+  }
+
+  /**
    * Insert a new report into the database.
    * @param {object} reportData
    * @returns {Promise<{data: object|null, error: object|null}>}

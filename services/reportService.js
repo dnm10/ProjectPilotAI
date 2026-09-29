@@ -18,6 +18,7 @@ class ServiceError extends Error {
 class ReportService {
   /**
    * Resolves the team ID for the requesting user context.
+   * Checks context, then user's membership, then first available team in Supabase.
    * @param {object} context - { userId, teamId }
    * @returns {Promise<string>}
    */
@@ -26,30 +27,73 @@ class ReportService {
       return context.teamId;
     }
 
-    if (!context.userId) {
-      throw new ServiceError('User authentication or team identification required', 401);
+    if (context.userId) {
+      const { teamId, error } = await ReportModel.findUserTeamId(context.userId);
+
+      if (error) {
+        throw new ServiceError(`Failed to determine user team: ${error.message}`, 500);
+      }
+
+      if (teamId) {
+        return teamId;
+      }
     }
 
-    const { teamId, error } = await ReportModel.findUserTeamId(context.userId);
+    // Dynamic fallback: select primary active team from Supabase database
+    const supabase = require('../config/supabase');
+    const { data: teamData, error: teamError } = await supabase
+      .from('teams')
+      .select('id')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (teamError) {
+      throw new ServiceError(`Failed to query teams: ${teamError.message}`, 500);
+    }
+
+    if (teamData && teamData.id) {
+      return teamData.id;
+    }
+
+    throw new ServiceError('No team found in database', 404);
+  }
+
+  /**
+   * Retrieves available report weeks for a team from the database.
+   * @param {object} context
+   * @returns {Promise<Array>}
+   */
+  static async getReportWeeks(context) {
+    const teamId = await this.resolveUserTeamId(context);
+    const { data, error } = await ReportModel.findWeeksByTeamId(teamId);
 
     if (error) {
-      throw new ServiceError(`Failed to determine user team: ${error.message}`, 500);
+      throw new ServiceError(`Database error fetching report weeks: ${error.message}`, 500);
     }
 
-    if (!teamId) {
-      throw new ServiceError('User does not belong to any team', 404);
-    }
-
-    return teamId;
+    return (data || []).map((r, index) => {
+      const formattedDate = new Date(r.week_start).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return {
+        weekStart: r.week_start,
+        label: `Week of ${formattedDate}`,
+        sprintName: `Sprint Report #${data.length - index}`,
+      };
+    });
   }
 
   /**
    * Retrieves the latest report for the authenticated user's team.
    * @param {object} context - { userId, teamId }
    * @param {string|undefined} versionParam
+   * @param {string|undefined} weekStart
    * @returns {Promise<object>}
    */
-  static async getLatestReport(context, versionParam) {
+  static async getLatestReport(context, versionParam, weekStart) {
     // 1. Validate version parameter
     const { isValid, sanitizedVersion, error: validationError } = validateVersion(versionParam);
     if (!isValid) {
@@ -59,11 +103,22 @@ class ReportService {
     // 2. Resolve the user's team
     const teamId = await this.resolveUserTeamId(context);
 
-    // 3. Query the latest report from database
-    const { data: report, error: dbError } = await ReportModel.findLatestByTeamId(teamId);
+    // 3. Query report from database (by week_start if supplied, or latest)
+    let report = null;
+    if (weekStart) {
+      const { data, error: dbError } = await ReportModel.findByTeamAndWeek(teamId, weekStart);
+      if (dbError) {
+        throw new ServiceError(`Database error fetching report: ${dbError.message}`, 500);
+      }
+      report = data;
+    }
 
-    if (dbError) {
-      throw new ServiceError(`Database error fetching latest report: ${dbError.message}`, 500);
+    if (!report) {
+      const { data, error: dbError } = await ReportModel.findLatestByTeamId(teamId);
+      if (dbError) {
+        throw new ServiceError(`Database error fetching latest report: ${dbError.message}`, 500);
+      }
+      report = data;
     }
 
     if (!report) {

@@ -64,3 +64,8 @@ DROP POLICY IF EXISTS "Team members can update reports" ON public.reports;
 CREATE POLICY "Team members can update reports"
     ON public.reports FOR UPDATE
     USING (public.is_team_member(team_id));
+
+DROP POLICY IF EXISTS "Team members can delete reports" ON public.reports;
+CREATE POLICY "Team members can delete reports"
+    ON public.reports FOR DELETE
+    USING (public.is_team_member(team_id));

@@ -44,14 +44,15 @@ class ReportController {
    * GET /reports/latest
    * Query params:
    *   - version: 'technical' | 'stakeholder' (optional)
+   *   - week_start: YYYY-MM-DD (optional)
    *   - user_id / team_id (optional for direct context)
    */
   static async getLatestReport(req, res) {
     try {
       const context = await extractRequestContext(req);
-      const { version } = req.query;
+      const { version, week_start } = req.query;
 
-      const result = await ReportService.getLatestReport(context, version);
+      const result = await ReportService.getLatestReport(context, version, week_start);
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof ServiceError) {
@@ -62,6 +63,37 @@ class ReportController {
       }
 
       console.error('Unexpected error in getLatestReport:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * GET /reports/weeks
+   * Query params:
+   *   - user_id / team_id (optional for direct context)
+   */
+  static async getReportWeeks(req, res) {
+    try {
+      const context = await extractRequestContext(req);
+      const weeks = await ReportService.getReportWeeks(context);
+
+      return res.status(200).json({
+        success: true,
+        weeks,
+      });
+    } catch (error) {
+      if (error instanceof ServiceError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      console.error('Unexpected error in getReportWeeks:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -106,5 +138,6 @@ class ReportController {
 module.exports = {
   ReportController,
   getLatestReport: ReportController.getLatestReport,
+  getReportWeeks: ReportController.getReportWeeks,
   getReportById: ReportController.getReportById,
 };

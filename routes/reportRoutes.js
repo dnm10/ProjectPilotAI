@@ -1,7 +1,10 @@
 const express = require('express');
-const { getLatestReport, getReportById } = require('../controllers/reportController');
+const { getLatestReport, getReportWeeks, getReportById } = require('../controllers/reportController');
 
 const router = express.Router();
+
+// GET /reports/weeks or /api/reports/weeks
+router.get('/weeks', getReportWeeks);
 
 // GET /reports/latest or /api/reports/latest
 router.get('/latest', getLatestReport);

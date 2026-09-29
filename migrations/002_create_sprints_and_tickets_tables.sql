@@ -83,6 +83,11 @@ CREATE POLICY "Team members can update sprints"
     ON public.sprints FOR UPDATE
     USING (public.is_team_member(team_id));
 
+DROP POLICY IF EXISTS "Team members can delete sprints" ON public.sprints;
+CREATE POLICY "Team members can delete sprints"
+    ON public.sprints FOR DELETE
+    USING (public.is_team_member(team_id));
+
 -- Tickets Policies
 DROP POLICY IF EXISTS "Team members can view tickets" ON public.tickets;
 CREATE POLICY "Team members can view tickets"
@@ -98,3 +103,9 @@ DROP POLICY IF EXISTS "Team members can update tickets" ON public.tickets;
 CREATE POLICY "Team members can update tickets"
     ON public.tickets FOR UPDATE
     USING (public.is_team_member(team_id));
+
+DROP POLICY IF EXISTS "Team members can delete tickets" ON public.tickets;
+CREATE POLICY "Team members can delete tickets"
+    ON public.tickets FOR DELETE
+    USING (public.is_team_member(team_id));
+

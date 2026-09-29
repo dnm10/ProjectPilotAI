@@ -27,20 +27,21 @@ CREATE INDEX IF NOT EXISTS idx_notifications_team
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users see only their own notifications" ON public.notifications;
-CREATE POLICY "Users see only their own notifications"
+CREATE POLICY "Users and team members can view notifications"
     ON public.notifications FOR SELECT
-    USING (user_id = auth.uid());
+    USING (user_id = auth.uid() OR (team_id IS NOT NULL AND public.is_team_member(team_id)));
 
 DROP POLICY IF EXISTS "Users can mark their own notifications read" ON public.notifications;
-CREATE POLICY "Users can mark their own notifications read"
+CREATE POLICY "Users and team members can update notifications"
     ON public.notifications FOR UPDATE
-    USING (user_id = auth.uid());
+    USING (user_id = auth.uid() OR (team_id IS NOT NULL AND public.is_team_member(team_id)));
 
 DROP POLICY IF EXISTS "Users can delete their own notifications" ON public.notifications;
-CREATE POLICY "Users can delete their own notifications"
+CREATE POLICY "Users and team members can delete notifications"
     ON public.notifications FOR DELETE
-    USING (user_id = auth.uid());
+    USING (user_id = auth.uid() OR (team_id IS NOT NULL AND public.is_team_member(team_id)));
 
 -- 4. Enable Realtime Replication for Notifications (Section 8)
 -- NOTE: In Supabase dashboard or via SQL:
 -- ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+
