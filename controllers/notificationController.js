@@ -17,9 +17,12 @@ class NotificationController {
         offset,
       });
 
+      const unreadCount = (notifications || []).filter((n) => !n.is_read).length;
+
       return res.status(200).json({
         success: true,
         count: notifications.length,
+        unreadCount,
         notifications,
       });
     } catch (error) {
