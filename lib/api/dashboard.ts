@@ -1,3 +1,5 @@
+import { API_BASE_URL } from './config'
+
 export interface DashboardStats {
   sprintProgress: number
   highRiskCount: number
@@ -24,81 +26,173 @@ export interface ActivityItem {
   id: string
   text: string
   timestamp: string
-  dotColor: string // e.g. '#DC2626', '#16A34A', '#4F46E5', '#A21CAF'
+  dotColor: string
 }
 
-// Typed Mock API fetchers (Ready for FastAPI integration)
-export async function fetchDashboardStats(): Promise<DashboardStats> {
-  return {
-    sprintProgress: 64,
-    highRiskCount: 3,
-    releaseReadinessScore: 74,
-    unreadAlertsCount: 5,
-    sprintName: 'Sprint 3',
-    sprintDayCount: 'Day 6 of 10',
+export interface DashboardSummaryResponse {
+  success: boolean
+  teamName: string
+  stats: DashboardStats
+  topRisks: TopRiskItem[]
+  workload: WorkloadItem[]
+  activity: ActivityItem[]
+}
+
+function getStoredTeamId(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('projectpilot_team_id')
+  }
+  return null
+}
+
+export async function fetchDashboardSummary(teamId?: string): Promise<DashboardSummaryResponse> {
+  try {
+    const targetTeamId = teamId || getStoredTeamId()
+    const url = new URL(`${API_BASE_URL}/api/dashboard/summary`)
+    if (targetTeamId) {
+      url.searchParams.append('team_id', targetTeamId)
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    return {
+      success: true,
+      teamName: data.teamName || 'Team',
+      stats: data.stats || {
+        sprintProgress: 0,
+        highRiskCount: 0,
+        releaseReadinessScore: 50,
+        unreadAlertsCount: 0,
+        sprintName: 'Sprint',
+        sprintDayCount: 'Active Sprint',
+      },
+      topRisks: Array.isArray(data.topRisks) ? data.topRisks : [],
+      workload: Array.isArray(data.workload) ? data.workload : [],
+      activity: Array.isArray(data.activity) ? data.activity : [],
+    }
+  } catch (error) {
+    console.warn('Failed to fetch dashboard summary from backend:', error)
+    return {
+      success: false,
+      teamName: 'Team',
+      stats: {
+        sprintProgress: 0,
+        highRiskCount: 0,
+        releaseReadinessScore: 50,
+        unreadAlertsCount: 0,
+        sprintName: 'Sprint',
+        sprintDayCount: 'Active Sprint',
+      },
+      topRisks: [],
+      workload: [],
+      activity: [],
+    }
   }
 }
 
-export async function fetchTopRisks(): Promise<TopRiskItem[]> {
-  return [
-    {
-      ticketId: 'TICKET-142',
-      title: 'Payment Gateway Integration',
-      riskScore: 78,
-      reason: 'No commits in 3 days · only 1 dev has touched this file · PR #212 has no tests',
-      riskType: 'code_aware',
-    },
-    {
-      ticketId: 'TICKET-156',
-      title: 'Checkout Flow Redesign',
-      riskScore: 71,
-      reason: 'Reopened 4 times this sprint · requirements still changing',
-      riskType: 'delay',
-    },
-    {
-      ticketId: 'TICKET-149',
-      title: 'Push Notification Service',
-      riskScore: 52,
-      reason: 'Review pending 3 days · assignee has 3 concurrent tickets',
-      riskType: 'delay',
-    },
-  ]
+export async function fetchDashboardStats(teamId?: string): Promise<DashboardStats> {
+  try {
+    const targetTeamId = teamId || getStoredTeamId()
+    const url = new URL(`${API_BASE_URL}/api/dashboard/stats`)
+    if (targetTeamId) {
+      url.searchParams.append('team_id', targetTeamId)
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const summary = await fetchDashboardSummary(teamId)
+      return summary.stats
+    }
+
+    const data = await response.json()
+    return data.stats
+  } catch {
+    const summary = await fetchDashboardSummary(teamId)
+    return summary.stats
+  }
 }
 
-export async function fetchWorkloadSummary(): Promise<WorkloadItem[]> {
-  return [
-    { name: 'Aditi', percentage: 82 },
-    { name: 'Rohan', percentage: 58 },
-    { name: 'Meera', percentage: 45 },
-    { name: 'Kabir', percentage: 63 },
-  ]
+export async function fetchTopRisks(teamId?: string): Promise<TopRiskItem[]> {
+  try {
+    const targetTeamId = teamId || getStoredTeamId()
+    const url = new URL(`${API_BASE_URL}/api/dashboard/risks`)
+    if (targetTeamId) {
+      url.searchParams.append('team_id', targetTeamId)
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const summary = await fetchDashboardSummary(teamId)
+      return summary.topRisks
+    }
+
+    const data = await response.json()
+    return Array.isArray(data.risks) ? data.risks : []
+  } catch {
+    const summary = await fetchDashboardSummary(teamId)
+    return summary.topRisks
+  }
 }
 
-export async function fetchRecentActivity(): Promise<ActivityItem[]> {
-  return [
-    {
-      id: '1',
-      text: 'Closed-loop check flagged Kabir’s promised fix on TICKET-149 as incomplete',
-      timestamp: '14 min ago',
-      dotColor: '#DC2626', // Red
-    },
-    {
-      id: '2',
-      text: 'Burnout signal raised for Aditi (3 late-night commits this week) — visible to lead only',
-      timestamp: '2 hr ago',
-      dotColor: '#A21CAF', // Purple (Burnout)
-    },
-    {
-      id: '3',
-      text: 'Weekly report generated — technical and stakeholder versions ready',
-      timestamp: '3 hr ago',
-      dotColor: '#16A34A', // Green
-    },
-    {
-      id: '4',
-      text: 'PR #219 merged by Meera — code-aware risk score dropped to 18%',
-      timestamp: '5 hr ago',
-      dotColor: '#4F46E5', // Indigo
-    },
-  ]
+export async function fetchWorkloadSummary(teamId?: string): Promise<WorkloadItem[]> {
+  try {
+    const targetTeamId = teamId || getStoredTeamId()
+    const url = new URL(`${API_BASE_URL}/api/dashboard/workload`)
+    if (targetTeamId) {
+      url.searchParams.append('team_id', targetTeamId)
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const summary = await fetchDashboardSummary(teamId)
+      return summary.workload
+    }
+
+    const data = await response.json()
+    return Array.isArray(data.workload) ? data.workload : []
+  } catch {
+    const summary = await fetchDashboardSummary(teamId)
+    return summary.workload
+  }
+}
+
+export async function fetchRecentActivity(teamId?: string): Promise<ActivityItem[]> {
+  try {
+    const targetTeamId = teamId || getStoredTeamId()
+    const url = new URL(`${API_BASE_URL}/api/dashboard/activity`)
+    if (targetTeamId) {
+      url.searchParams.append('team_id', targetTeamId)
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    if (!response.ok) {
+      const summary = await fetchDashboardSummary(teamId)
+      return summary.activity
+    }
+
+    const data = await response.json()
+    return Array.isArray(data.activity) ? data.activity : []
+  } catch {
+    const summary = await fetchDashboardSummary(teamId)
+    return summary.activity
+  }
 }

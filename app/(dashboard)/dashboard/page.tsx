@@ -1,12 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  useDashboardStats,
-  useTopRisks,
-  useWorkloadSummary,
-  useRecentActivity,
+  useDashboardSummary,
 } from '@/hooks/useDashboard'
 import StatCard from '@/components/features/dashboard/StatCard'
 import TopRisksList from '@/components/features/dashboard/TopRisksList'
@@ -23,10 +20,27 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { data: stats } = useDashboardStats()
-  const { data: topRisks, isLoading: risksLoading } = useTopRisks()
-  const { data: workload, isLoading: workloadLoading } = useWorkloadSummary()
-  const { data: activity, isLoading: activityLoading } = useRecentActivity()
+  const [teamId, setTeamId] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('projectpilot_team_id')
+      if (stored) setTeamId(stored)
+    }
+  }, [])
+
+  const { data: summary, isLoading } = useDashboardSummary(teamId)
+  const stats = summary?.stats
+  const topRisks = summary?.topRisks || []
+  const workload = summary?.workload || []
+  const activity = summary?.activity || []
+  const teamName = summary?.teamName || 'Team'
+
+  const formattedDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
 
   return (
     <div className="relative space-y-6">
@@ -44,10 +58,10 @@ export default function DashboardPage() {
             </span>
           </div>
           <h1 className="text-[26px] font-extrabold text-[#0F172A] tracking-tight">
-            Good morning, Team Zenith
+            Good morning, {teamName}
           </h1>
           <p className="text-[13px] text-[#64748B] mt-0.5">
-            Wednesday, 19 August &bull; Sprint 3, Day 6 of 10
+            {formattedDate} &bull; {stats?.sprintName || 'Active Sprint'}, {stats?.sprintDayCount || 'Sprint Active'}
           </p>
         </div>
 
@@ -81,34 +95,34 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Sprint Progress"
-          value={`${stats?.sprintProgress ?? 64}%`}
-          trend="+12% velocity"
+          value={`${stats?.sprintProgress ?? 0}%`}
+          trend={stats?.sprintProgress && stats.sprintProgress > 0 ? `+${stats.sprintProgress}% velocity` : 'On Track'}
           trendUp={true}
-          progressPercentage={stats?.sprintProgress ?? 64}
+          progressPercentage={stats?.sprintProgress ?? 0}
           icon={TrendingUp}
           iconBg="bg-gradient-to-br from-[#1F3864] to-[#4F46E5]"
         />
         <StatCard
           title="High-Risk Items"
-          value={stats?.highRiskCount ?? 3}
-          valueColor="text-[#DC2626]"
-          subtitle="Requires attention"
+          value={stats?.highRiskCount ?? 0}
+          valueColor={stats?.highRiskCount && stats.highRiskCount > 0 ? "text-[#DC2626]" : "text-[#16A34A]"}
+          subtitle={stats?.highRiskCount && stats.highRiskCount > 0 ? "Requires attention" : "All clear"}
           icon={AlertTriangle}
           iconBg="bg-gradient-to-br from-[#DC2626] to-[#EF4444]"
         />
         <StatCard
           title="Release Readiness"
-          value={`${stats?.releaseReadinessScore ?? 74}/100`}
+          value={`${stats?.releaseReadinessScore ?? 75}/100`}
           valueColor="text-[#D97706]"
-          trend="81% on-time prob"
+          trend="Calculated Live"
           trendUp={true}
           icon={Gauge}
           iconBg="bg-gradient-to-br from-[#D97706] to-[#F59E0B]"
         />
         <StatCard
           title="Unread Alerts"
-          value={stats?.unreadAlertsCount ?? 5}
-          subtitle="2 lead-only signals"
+          value={stats?.unreadAlertsCount ?? 0}
+          subtitle={stats?.unreadAlertsCount && stats.unreadAlertsCount > 0 ? `${stats.unreadAlertsCount} pending review` : "Zero blockers"}
           icon={Bell}
           iconBg="bg-gradient-to-br from-[#1F3864] to-[#2F5496]"
         />
@@ -117,15 +131,15 @@ export default function DashboardPage() {
       {/* Two-Column Middle Section: Top Risks (62%) + Team Workload (36%) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
-          <TopRisksList risks={topRisks} loading={risksLoading} />
+          <TopRisksList risks={topRisks} loading={isLoading} />
         </div>
         <div className="lg:col-span-4">
-          <WorkloadBarList workloads={workload} loading={workloadLoading} />
+          <WorkloadBarList workloads={workload} loading={isLoading} />
         </div>
       </div>
 
       {/* Full-Width Recent Activity Feed */}
-      <ActivityFeed activities={activity} loading={activityLoading} />
+      <ActivityFeed activities={activity} loading={isLoading} />
     </div>
   )
 }
