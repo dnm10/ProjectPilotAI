@@ -13,9 +13,19 @@ import type {
 import type { TeamMember } from '@/types'
 
 export function useGenerateTasks() {
-  return useMutation<DraftTask[], Error, string>({
-    mutationFn: (requirements: string) =>
-      generateTasksFromRequirements(requirements),
+  return useMutation<
+    DraftTask[],
+    Error,
+    { requirements: string; teamMembers?: TeamMember[] } | string
+  >({
+    mutationFn: (
+      args: { requirements: string; teamMembers?: TeamMember[] } | string
+    ) => {
+      if (typeof args === 'string') {
+        return generateTasksFromRequirements(args)
+      }
+      return generateTasksFromRequirements(args.requirements, args.teamMembers)
+    },
   })
 }
 

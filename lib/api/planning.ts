@@ -21,93 +21,41 @@ export interface DeveloperSchedule {
   assigned_tasks_count: number
 }
 
-function generateFallbackTasks(requirements: string): DraftTask[] {
-  const reqLower = requirements.toLowerCase()
+function generateDynamicFallbackTasks(
+  requirements: string,
+  teamMembers: TeamMember[] = []
+): DraftTask[] {
+  const req = (requirements || '').trim()
+  const lines = req
+    .split(/\r?\n|;|\.\s+/)
+    .map((l) => l.replace(/^[-*•\d.)\s]+/, '').trim())
+    .filter((l) => l.length > 5)
 
-  if (reqLower.includes('otp') || reqLower.includes('login') || reqLower.includes('auth') || reqLower.includes('signup')) {
-    return [
-      {
-        id: `draft-${Date.now()}-1`,
-        title: 'Design & Implement OTP Generation and Verification Service',
-        description: 'Build backend service to generate 6-digit cryptographic OTPs with TTL expiration and rate-limiting.',
-        story_points: 5,
-        estimated_days: 3,
-        is_included: true,
-        suggested_developer: 'Aditi Sharma',
-      },
-      {
-        id: `draft-${Date.now()}-2`,
-        title: 'Build Login and Signup UI components with OTP Verification Modal',
-        description: 'Responsive frontend form with auto-advancing 6-digit OTP input boxes, resend timer, and error handling.',
-        story_points: 3,
-        estimated_days: 2,
-        is_included: true,
-        suggested_developer: 'Rohan Verma',
-      },
-      {
-        id: `draft-${Date.now()}-3`,
-        title: 'Implement JWT Session Token Exchange & Auth Middleware',
-        description: 'Issue signed JWT access and refresh cookies upon successful OTP verification, with route protection.',
-        story_points: 5,
-        estimated_days: 3,
-        is_included: true,
-        suggested_developer: 'Meera Iyer',
-      },
-      {
-        id: `draft-${Date.now()}-4`,
-        title: 'Database Schema Migrations for Users & OTP Audit Logs',
-        description: 'PostgreSQL schema adding user verification status, phone/email index, and security audit log table.',
-        story_points: 3,
-        estimated_days: 2,
-        is_included: true,
-        suggested_developer: 'Kabir Mehta',
-      },
-    ]
-  }
+  const taskItems = lines.length > 0 ? lines : [req]
 
-  // Generic intelligent breakdown for other prompts
-  return [
-    {
-      id: `draft-${Date.now()}-1`,
-      title: `Core Backend Architecture for ${requirements.slice(0, 45)}...`,
-      description: `Implement the foundational backend data models, business logic controllers, and service handlers.`,
-      story_points: 5,
-      estimated_days: 3,
-      is_included: true,
-      suggested_developer: 'Aditi Sharma',
-    },
-    {
-      id: `draft-${Date.now()}-2`,
-      title: `Frontend Interface & Interactive Components`,
-      description: `Build responsive UI layout, state management hooks, and client-side validation for this feature.`,
+  return taskItems.map((item, index) => {
+    const dev =
+      teamMembers && teamMembers.length > 0
+        ? teamMembers[index % teamMembers.length]
+        : null
+
+    return {
+      id: `task-${Date.now()}-${index}`,
+      title: item.length > 60 ? `${item.slice(0, 57)}...` : item,
+      description: item,
       story_points: 3,
       estimated_days: 2,
       is_included: true,
-      suggested_developer: 'Rohan Verma',
-    },
-    {
-      id: `draft-${Date.now()}-3`,
-      title: `Database Schema & API Integration Layer`,
-      description: `Create PostgreSQL database migrations, indexes, and connect REST/GraphQL endpoints with the frontend.`,
-      story_points: 5,
-      estimated_days: 3,
-      is_included: true,
-      suggested_developer: 'Meera Iyer',
-    },
-    {
-      id: `draft-${Date.now()}-4`,
-      title: `Automated Test Suites & Edge Case Verification`,
-      description: `Write unit and integration tests covering positive flows, rate limits, and failure recovery.`,
-      story_points: 3,
-      estimated_days: 2,
-      is_included: true,
-      suggested_developer: 'Kabir Mehta',
-    },
-  ]
+      assignee_id: dev?.id || '',
+      suggested_developer: dev?.name || '',
+      assigned_developer_name: dev?.name || '',
+    }
+  })
 }
 
 export async function generateTasksFromRequirements(
-  requirements: string
+  requirements: string,
+  teamMembers: TeamMember[] = []
 ): Promise<DraftTask[]> {
   try {
     const response = await fetch(
@@ -124,21 +72,34 @@ export async function generateTasksFromRequirements(
     )
 
     if (!response.ok) {
-      // Graceful fallback to smart local generator if backend AI endpoint is not ready
-      await new Promise((resolve) => setTimeout(resolve, 800))
-      return generateFallbackTasks(requirements)
+      return generateDynamicFallbackTasks(requirements, teamMembers)
     }
 
     const data = await response.json()
-    if (!data.tasks || data.tasks.length === 0) {
-      return generateFallbackTasks(requirements)
+    if (!data.tasks || !Array.isArray(data.tasks) || data.tasks.length === 0) {
+      return generateDynamicFallbackTasks(requirements, teamMembers)
     }
 
-    return data.tasks
+    return data.tasks.map((task: any, index: number) => {
+      const assignedDev =
+        teamMembers && teamMembers.length > 0
+          ? teamMembers[index % teamMembers.length]
+          : null
+
+      return {
+        id: task.id || `draft-${Date.now()}-${index}`,
+        title: task.title,
+        description: task.description || '',
+        story_points: Number(task.story_points) || 3,
+        estimated_days: Math.max(1, Math.ceil((Number(task.story_points) || 3) / 2)),
+        is_included: true,
+        assignee_id: assignedDev?.id || '',
+        suggested_developer: assignedDev?.name || '',
+        assigned_developer_name: assignedDev?.name || '',
+      }
+    })
   } catch {
-    // Graceful fallback on network error
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    return generateFallbackTasks(requirements)
+    return generateDynamicFallbackTasks(requirements, teamMembers)
   }
 }
 
@@ -191,6 +152,7 @@ export async function planSprintSchedule(
 }
 
 export interface CreateSprintData {
+  team_id?: string
   name: string
   start_date?: string
   end_date?: string
@@ -225,7 +187,8 @@ export async function createSprint(
 
 export async function createTickets(
   sprintId: string,
-  tickets: DraftTask[]
+  tickets: DraftTask[],
+  teamId?: string
 ) {
   const response = await fetch(
     `${API_BASE_URL}/api/tickets`,
@@ -236,6 +199,7 @@ export async function createTickets(
       },
       body: JSON.stringify({
         sprint_id: sprintId,
+        team_id: teamId || null,
         tickets: tickets.map((task) => ({
           title: task.title,
           description: task.description,
@@ -243,6 +207,7 @@ export async function createTickets(
           status: 'todo',
           priority: 'medium',
           assignee_id: task.assignee_id || null,
+          team_id: teamId || null,
         })),
       }),
     }

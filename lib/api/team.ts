@@ -1,6 +1,8 @@
 import { TeamMember } from '@/types'
 import { API_BASE_URL } from './config'
 
+export const TEAM_ID_STORAGE_KEY = 'projectpilot_team_id'
+
 export type Team = {
   id: string
   name: string
@@ -37,74 +39,6 @@ type BackendTeamMember = {
     | null
 }
 
-const TEAM_STORAGE_KEY = 'projectpilot_team_members'
-
-const defaultTeamMembers: TeamMember[] = [
-  {
-    id: 'user-zenith',
-    name: 'Team Zenith',
-    email: 'lead@projectpilot.ai',
-    initials: 'TZ',
-    role_in_team: 'lead',
-    current_workload_percentage: 65,
-  },
-  {
-    id: 'user-aditi',
-    name: 'Aditi Sharma',
-    email: 'aditi@projectpilot.ai',
-    initials: 'AS',
-    role_in_team: 'member',
-    current_workload_percentage: 85,
-  },
-  {
-    id: 'user-rohan',
-    name: 'Rohan Verma',
-    email: 'rohan@projectpilot.ai',
-    initials: 'RV',
-    role_in_team: 'member',
-    current_workload_percentage: 50,
-  },
-  {
-    id: 'user-meera',
-    name: 'Meera Iyer',
-    email: 'meera@projectpilot.ai',
-    initials: 'MI',
-    role_in_team: 'member',
-    current_workload_percentage: 70,
-  },
-  {
-    id: 'user-kabir',
-    name: 'Kabir Mehta',
-    email: 'kabir@projectpilot.ai',
-    initials: 'KM',
-    role_in_team: 'member',
-    current_workload_percentage: 92,
-  },
-]
-
-let inMemoryTeam: TeamMember[] = [...defaultTeamMembers]
-
-function loadTeam() {
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem(TEAM_STORAGE_KEY)
-      if (stored) inMemoryTeam = JSON.parse(stored)
-    } catch {
-      // fallback
-    }
-  }
-}
-
-function saveTeam() {
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(inMemoryTeam))
-    } catch {
-      // ignore
-    }
-  }
-}
-
 export async function fetchTeams(): Promise<Team[]> {
   const response = await fetch(`${API_BASE_URL}/api/team/list`)
 
@@ -117,25 +51,39 @@ export async function fetchTeams(): Promise<Team[]> {
     teams: Team[]
   } = await response.json()
 
-  return data.teams
+  return data.teams || []
 }
 
 export async function fetchTeamMembers(
   teamId?: string
 ): Promise<TeamMember[]> {
-  if (!teamId) {
-    loadTeam()
-    return [...inMemoryTeam]
+  let targetTeamId =
+    teamId ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem(TEAM_ID_STORAGE_KEY)
+      : null)
+
+  // If still no team ID, fetch first team from Supabase
+  if (!targetTeamId) {
+    const teams = await fetchTeams().catch(() => [])
+    if (teams.length > 0) {
+      targetTeamId = teams[0].id
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(TEAM_ID_STORAGE_KEY, targetTeamId)
+      }
+    }
+  }
+
+  if (!targetTeamId) {
+    return []
   }
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/team?team_id=${encodeURIComponent(teamId)}`
+      `${API_BASE_URL}/api/team?team_id=${encodeURIComponent(targetTeamId)}`
     )
 
     const data = await response.json().catch(() => null)
-
-    console.log('Team members API response:', data)
 
     if (!response.ok) {
       throw new Error(
@@ -143,14 +91,14 @@ export async function fetchTeamMembers(
       )
     }
 
-    return (data?.teamMembers || []).map(
+    const members = (data?.teamMembers || []).map(
       (member: BackendTeamMember) => {
         const profile = member.profiles
 
         const name =
           profile?.full_name ||
           profile?.email ||
-          'Unknown User'
+          'Team Member'
 
         return {
           id: member.user_id,
@@ -167,10 +115,11 @@ export async function fetchTeamMembers(
         }
       }
     )
+
+    return members
   } catch (error) {
-    console.warn('Backend fetchTeamMembers failed, falling back to local list:', error)
-    loadTeam()
-    return [...inMemoryTeam]
+    console.warn('Backend fetchTeamMembers failed:', error)
+    return []
   }
 }
 
@@ -186,7 +135,7 @@ export async function fetchAvailableUsers(): Promise<AvailableUser[]> {
     users: AvailableUser[]
   } = await response.json()
 
-  return data.users
+  return data.users || []
 }
 
 export async function createTeam(name: string, createdBy: string) {
@@ -333,18 +282,7 @@ export async function updateTeamMemberRole(
   try {
     await updateTeamMember(memberId, newRole)
   } catch (error) {
-    console.warn('Backend updateTeamMember failed, updating local storage:', error)
-  }
-
-  loadTeam()
-  const index = inMemoryTeam.findIndex((m) => m.id === memberId)
-  if (index !== -1) {
-    inMemoryTeam[index] = {
-      ...inMemoryTeam[index],
-      role_in_team: newRole,
-    }
-    saveTeam()
-    return inMemoryTeam[index]
+    console.warn('Backend updateTeamMember error:', error)
   }
 
   return {

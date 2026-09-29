@@ -27,7 +27,7 @@ import {
   createTickets,
 } from '@/lib/api/planning'
 
-import { fetchTeamMembers } from '@/lib/api/team'
+import { fetchTeamMembers, fetchTeams, TEAM_ID_STORAGE_KEY } from '@/lib/api/team'
 
 import type {
   DraftTask,
@@ -81,19 +81,20 @@ export default function SprintPlanningPage() {
         setIsLoadingTeamMembers(true)
         setError('')
 
-        const teamId = localStorage.getItem(
-          'projectpilot_team_id'
-        )
+        let teamId = localStorage.getItem(TEAM_ID_STORAGE_KEY)
 
         if (!teamId) {
-          setError(
-            'Please select a team before planning the sprint.'
-          )
-          return
+          const availableTeams = await fetchTeams().catch(() => [])
+          if (availableTeams && availableTeams.length > 0) {
+            teamId = availableTeams[0].id
+            localStorage.setItem(TEAM_ID_STORAGE_KEY, teamId)
+          } else {
+            teamId = ''
+            localStorage.setItem(TEAM_ID_STORAGE_KEY, teamId)
+          }
         }
 
         const members = await fetchTeamMembers(teamId)
-
         setTeamMembers(members)
       } catch (err) {
         console.error(err)
@@ -116,24 +117,30 @@ export default function SprintPlanningPage() {
       setError('')
 
       const generatedTasks =
-        await generateTasksMutation.mutateAsync(
-          requirements
-        )
+        await generateTasksMutation.mutateAsync({
+          requirements,
+          teamMembers,
+        })
 
-      const updatedTasks = generatedTasks.map((task) => {
+      const updatedTasks = generatedTasks.map((task, index) => {
         const points = Number(task.story_points) || 3
         const days =
           task.estimated_days !== undefined
             ? Number(task.estimated_days)
             : Math.max(1, Math.ceil(points / 2))
 
+        const assignedMember =
+          teamMembers.find((m) => m.id === task.assignee_id) ||
+          (teamMembers.length > 0 ? teamMembers[index % teamMembers.length] : null)
+
         return {
           ...task,
           story_points: points,
           estimated_days: days,
           is_included: task.is_included ?? true,
-          assignee_id: '',
-          assigned_developer_name: '',
+          assignee_id: assignedMember?.id || task.assignee_id || '',
+          assigned_developer_name:
+            assignedMember?.name || task.assigned_developer_name || '',
         }
       })
 
@@ -344,7 +351,10 @@ export default function SprintPlanningPage() {
         0
       )
 
+      const currentTeamId = localStorage.getItem(TEAM_ID_STORAGE_KEY) || ''
+
       const sprintResponse = await createSprint({
+        team_id: currentTeamId,
         name: sprintName,
         start_date: startDate,
         end_date: endDate,
@@ -362,7 +372,7 @@ export default function SprintPlanningPage() {
         )
       }
 
-      await createTickets(sprintId, activeTasks)
+      await createTickets(sprintId, activeTasks, currentTeamId)
 
       alert('Sprint and tickets created successfully!')
 
