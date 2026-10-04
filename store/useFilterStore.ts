@@ -1,0 +1,27 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+interface FilterState {
+  selectedAssignee: string | 'all'
+  selectedRiskType: string | 'all'
+  selectedSprintId: string
+  setSelectedAssignee: (assignee: string | 'all') => void
+  setSelectedRiskType: (riskType: string | 'all') => void
+  setSelectedSprintId: (sprintId: string) => void
+}
+
+export const useFilterStore = create<FilterState>()(
+  persist(
+    (set) => ({
+      selectedAssignee: 'all',
+      selectedRiskType: 'all',
+      selectedSprintId: '',
+      setSelectedAssignee: (assignee) => set({ selectedAssignee: assignee }),
+      setSelectedRiskType: (riskType) => set({ selectedRiskType: riskType }),
+      setSelectedSprintId: (sprintId) => set({ selectedSprintId: sprintId }),
+    }),
+    {
+      name: 'projectpilot_filter_store',
+    }
+  )
+)
