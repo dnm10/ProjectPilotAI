@@ -1,53 +1,35 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  fetchDashboardSummary,
   fetchDashboardStats,
   fetchTopRisks,
   fetchWorkloadSummary,
   fetchRecentActivity,
-  getCachedDashboardSummary,
 } from '@/lib/api/dashboard'
 
-export function useDashboardSummary(teamId?: string) {
-  const activeTeamId =
-    teamId ||
-    (typeof window !== 'undefined'
-      ? localStorage.getItem('projectpilot_team_id') || undefined
-      : undefined)
-
+export function useDashboardStats() {
   return useQuery({
-    queryKey: ['dashboard', 'summary', activeTeamId],
-    queryFn: () => fetchDashboardSummary(activeTeamId),
-    placeholderData: () => getCachedDashboardSummary(activeTeamId),
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
+    queryKey: ['dashboard', 'stats'],
+    queryFn: fetchDashboardStats,
   })
 }
 
-export function useDashboardStats(teamId?: string) {
+export function useTopRisks() {
   return useQuery({
-    queryKey: ['dashboard', 'stats', teamId],
-    queryFn: () => fetchDashboardStats(teamId),
+    queryKey: ['dashboard', 'topRisks'],
+    queryFn: fetchTopRisks,
   })
 }
 
-export function useTopRisks(teamId?: string) {
+export function useWorkloadSummary() {
   return useQuery({
-    queryKey: ['dashboard', 'topRisks', teamId],
-    queryFn: () => fetchTopRisks(teamId),
+    queryKey: ['dashboard', 'workload'],
+    queryFn: fetchWorkloadSummary,
   })
 }
 
-export function useWorkloadSummary(teamId?: string) {
+export function useRecentActivity() {
   return useQuery({
-    queryKey: ['dashboard', 'workload', teamId],
-    queryFn: () => fetchWorkloadSummary(teamId),
-  })
-}
-
-export function useRecentActivity(teamId?: string) {
-  return useQuery({
-    queryKey: ['dashboard', 'recentActivity', teamId],
-    queryFn: () => fetchRecentActivity(teamId),
+    queryKey: ['dashboard', 'recentActivity'],
+    queryFn: fetchRecentActivity,
   })
 }

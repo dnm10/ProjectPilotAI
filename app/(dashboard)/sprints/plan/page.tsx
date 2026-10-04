@@ -25,6 +25,7 @@ import {
 import {
   createSprint,
   createTickets,
+  fitTasksIntoSprintDuration,
 } from '@/lib/api/planning'
 
 import { fetchTeamMembers, fetchTeams, TEAM_ID_STORAGE_KEY } from '@/lib/api/team'
@@ -51,6 +52,17 @@ export default function SprintPlanningPage() {
   const [endDate, setEndDate] = useState('')
   const [today, setToday] = useState('')
 
+  const sprintDuration =
+    startDate && endDate && endDate >= startDate
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+              (1000 * 60 * 60 * 24)
+          ) + 1
+        )
+      : null
+
   useEffect(() => {
     setToday(getTodayDateString())
   }, [])
@@ -74,6 +86,36 @@ export default function SprintPlanningPage() {
 
   const generateTasksMutation = useGenerateTasks()
   const planSprintMutation = usePlanSprint()
+
+  const handleStartDateChange = (newStart: string) => {
+    setStartDate(newStart)
+    if (endDate && newStart && endDate < newStart) {
+      setEndDate('')
+    } else if (endDate && newStart) {
+      const dur = Math.max(
+        1,
+        Math.round(
+          (new Date(endDate).getTime() - new Date(newStart).getTime()) /
+            (1000 * 60 * 60 * 24)
+        ) + 1
+      )
+      setTasks((currentTasks) => fitTasksIntoSprintDuration(currentTasks, dur))
+    }
+  }
+
+  const handleEndDateChange = (newEnd: string) => {
+    setEndDate(newEnd)
+    if (startDate && newEnd && newEnd >= startDate) {
+      const dur = Math.max(
+        1,
+        Math.round(
+          (new Date(newEnd).getTime() - new Date(startDate).getTime()) /
+            (1000 * 60 * 60 * 24)
+        ) + 1
+      )
+      setTasks((currentTasks) => fitTasksIntoSprintDuration(currentTasks, dur))
+    }
+  }
 
   useEffect(() => {
     async function loadTeamMembers() {
@@ -120,31 +162,37 @@ export default function SprintPlanningPage() {
         await generateTasksMutation.mutateAsync({
           requirements,
           teamMembers,
+          startDate,
+          endDate,
+          duration: sprintDuration,
         })
 
-      const updatedTasks = generatedTasks.map((task, index) => {
+      const updatedTasks = generatedTasks.map((task) => {
         const points = Number(task.story_points) || 3
         const days =
           task.estimated_days !== undefined
             ? Number(task.estimated_days)
             : Math.max(1, Math.ceil(points / 2))
 
-        const assignedMember =
-          teamMembers.find((m) => m.id === task.assignee_id) ||
-          (teamMembers.length > 0 ? teamMembers[index % teamMembers.length] : null)
+        const assignedMember = task.assignee_id
+          ? teamMembers.find((m) => m.id === task.assignee_id)
+          : null
 
         return {
           ...task,
           story_points: points,
           estimated_days: days,
           is_included: task.is_included ?? true,
-          assignee_id: assignedMember?.id || task.assignee_id || '',
-          assigned_developer_name:
-            assignedMember?.name || task.assigned_developer_name || '',
+          assignee_id: assignedMember?.id || '',
+          assigned_developer_name: assignedMember?.name || '',
         }
       })
 
-      setTasks(updatedTasks)
+      const finalTasks = sprintDuration
+        ? fitTasksIntoSprintDuration(updatedTasks, sprintDuration)
+        : updatedTasks
+
+      setTasks(finalTasks)
       setSchedules([])
     } catch (err) {
       console.error(err)
@@ -193,17 +241,27 @@ export default function SprintPlanningPage() {
     value: string | number
   ) {
     setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              [field]:
-                field === 'story_points' || field === 'estimated_days'
-                  ? Math.max(1, Number(value) || 1)
-                  : value,
-            }
-          : task
-      )
+      currentTasks.map((task) => {
+        if (task.id !== taskId) return task
+        if (field === 'story_points') {
+          return {
+            ...task,
+            story_points: Math.max(1, Number(value) || 1),
+          }
+        }
+        if (field === 'estimated_days') {
+          const parsed = Math.max(1, Number(value) || 1)
+          const clamped = sprintDuration ? Math.min(parsed, sprintDuration) : parsed
+          return {
+            ...task,
+            estimated_days: clamped,
+          }
+        }
+        return {
+          ...task,
+          [field]: value,
+        }
+      })
     )
   }
 
@@ -214,12 +272,13 @@ export default function SprintPlanningPage() {
   }
 
   function handleAddTask() {
+    const defaultDays = sprintDuration ? Math.max(1, Math.min(2, sprintDuration)) : 2
     const newTask: DraftTask = {
       id: `custom-task-${Date.now()}-${tasks.length + 1}`,
       title: 'New Sprint Task',
       description: '',
       story_points: 3,
-      estimated_days: 2,
+      estimated_days: defaultDays,
       is_included: true,
       assignee_id: '',
       assigned_developer_name: '',
@@ -575,13 +634,9 @@ export default function SprintPlanningPage() {
                     type="date"
                     min={today || undefined}
                     value={startDate}
-                    onChange={(event) => {
-                      const val = event.target.value
-                      setStartDate(val)
-                      if (endDate && val && endDate < val) {
-                        setEndDate('')
-                      }
-                    }}
+                    onChange={(event) =>
+                      handleStartDateChange(event.target.value)
+                    }
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   />
                 </div>
@@ -596,12 +651,21 @@ export default function SprintPlanningPage() {
                     min={startDate || today || undefined}
                     value={endDate}
                     onChange={(event) =>
-                      setEndDate(event.target.value)
+                      handleEndDateChange(event.target.value)
                     }
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                   />
                 </div>
               </div>
+
+              {sprintDuration !== null && (
+                <div className="flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-100/80 px-3 py-2 text-xs font-semibold text-indigo-700">
+                  <Clock size={14} className="text-indigo-600 shrink-0" />
+                  <span>
+                    Sprint Duration: <strong>{sprintDuration}</strong> {sprintDuration === 1 ? 'day' : 'days'} (AI tasks capped at {sprintDuration}d max)
+                  </span>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -633,9 +697,39 @@ export default function SprintPlanningPage() {
                 Total Points: {totalPoints}
               </div>
 
-              <div className="flex items-center gap-1 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">
-                <Clock size={13} />
-                Est. Duration: {totalEstimatedDays} days
+              <div
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  sprintDuration && totalEstimatedDays > sprintDuration
+                    ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                    : 'bg-indigo-50 text-indigo-700'
+                }`}
+              >
+                <Clock
+                  size={13}
+                  className={
+                    sprintDuration && totalEstimatedDays > sprintDuration
+                      ? 'text-amber-600'
+                      : 'text-indigo-600'
+                  }
+                />
+                <span>
+                  Est. Work: <strong>{totalEstimatedDays} days</strong>
+                  {sprintDuration ? ` (Sprint: ${sprintDuration}d)` : ''}
+                </span>
+                {sprintDuration && totalEstimatedDays > sprintDuration && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTasks((current) =>
+                        fitTasksIntoSprintDuration(current, sprintDuration)
+                      )
+                    }
+                    className="ml-1 rounded bg-amber-200/90 px-1.5 py-0.5 text-[10px] font-bold text-amber-950 hover:bg-amber-300 transition-colors cursor-pointer"
+                    title={`Scale tasks to fit within ${sprintDuration} days`}
+                  >
+                    Fit to {sprintDuration}d
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -717,17 +811,20 @@ export default function SprintPlanningPage() {
                         </div>
 
                         {/* Estimated Days Editor */}
-                        <div className="flex items-center gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50/70 px-2.5 py-1 text-xs">
+                        <div
+                          className="flex items-center gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50/70 px-2.5 py-1 text-xs"
+                          title={sprintDuration ? `Estimated days (Max allowed: ${sprintDuration} days)` : 'Estimated days'}
+                        >
                           <Clock size={13} className="text-indigo-600" />
                           <span className="font-medium text-indigo-700">Days:</span>
                           <input
                             type="number"
                             min="1"
-                            max="100"
+                            max={sprintDuration || 100}
                             value={
                               task.estimated_days !== undefined
                                 ? task.estimated_days
-                                : Math.max(1, Math.ceil((task.story_points || 3) / 2))
+                                : Math.max(1, Math.min(Math.ceil((Number(task.story_points) || 3) / 2), sprintDuration || 100))
                             }
                             onChange={(event) =>
                               handleUpdateTask(
@@ -738,6 +835,11 @@ export default function SprintPlanningPage() {
                             }
                             className="w-12 rounded border border-indigo-200 bg-white px-1 py-0.5 text-center text-xs font-bold text-indigo-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200"
                           />
+                          {sprintDuration && (
+                            <span className="text-[11px] font-semibold text-indigo-500">
+                              /{sprintDuration}d
+                            </span>
+                          )}
                         </div>
 
                         {/* Delete Task Button */}

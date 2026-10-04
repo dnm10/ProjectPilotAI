@@ -1,4 +1,4 @@
-import { Ticket, TicketStatus, Sprint } from '@/types'
+import { Ticket, TicketStatus } from '@/types'
 import { API_BASE_URL } from './config'
 
 interface RawBackendTicket {
@@ -18,27 +18,6 @@ interface RawBackendTicket {
   } | null
 }
 
-const SPRINT_TICKETS_CACHE = 'projectpilot_sprint_tickets_cache'
-const SPRINTS_CACHE = 'projectpilot_sprints_cache'
-
-export function getCachedSprintTickets(sprintId: string): Ticket[] | undefined {
-  if (typeof window === 'undefined' || !sprintId) return undefined
-  try {
-    const raw = localStorage.getItem(`${SPRINT_TICKETS_CACHE}_${sprintId}`)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return undefined
-}
-
-export function getCachedSprints(): Sprint[] | undefined {
-  if (typeof window === 'undefined') return undefined
-  try {
-    const raw = localStorage.getItem(SPRINTS_CACHE)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return undefined
-}
-
 export async function fetchSprintTickets(
   sprintId: string
 ): Promise<Ticket[]> {
@@ -56,7 +35,7 @@ export async function fetchSprintTickets(
 
   const data = await response.json()
 
-  const tickets: Ticket[] = (data.tickets || []).map((ticket: RawBackendTicket) => {
+  return (data.tickets || []).map((ticket: RawBackendTicket) => {
     const profile = ticket.profiles || null
 
     const developerName =
@@ -90,14 +69,6 @@ export async function fetchSprintTickets(
       updated_at: ticket.updated_at,
     }
   })
-
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(`${SPRINT_TICKETS_CACHE}_${sprintId}`, JSON.stringify(tickets))
-    } catch {}
-  }
-
-  return tickets
 }
 
 export async function updateTicketStatus(
@@ -144,15 +115,8 @@ export async function fetchSprints() {
   }
 
   const data = await response.json()
-  const sprintsList = Array.isArray(data.sprints) ? data.sprints : []
 
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(SPRINTS_CACHE, JSON.stringify(sprintsList))
-    } catch {}
-  }
-
-  return sprintsList
+  return data.sprints
 }
 
 export async function deleteSprint(sprintId: string) {

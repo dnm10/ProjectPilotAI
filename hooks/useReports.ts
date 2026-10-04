@@ -2,16 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchReport, fetchAvailableWeeks } from '@/lib/api/reports'
 import { ReportAudience } from '@/types'
 
-export function useReport(weekStart?: string, version: ReportAudience = 'technical', teamId?: string) {
+export function useReport(weekStart: string, version?: ReportAudience) {
   return useQuery({
-    queryKey: ['report', weekStart || 'latest', version, teamId || 'default'],
-    queryFn: () => fetchReport(weekStart, version, teamId),
+    queryKey: ['report', weekStart, version],
+    queryFn: () => fetchReport(weekStart),
+    enabled: Boolean(weekStart),
   })
 }
 
-export function useAvailableReportWeeks(teamId?: string) {
+export function useAvailableReportWeeks() {
   return useQuery({
-    queryKey: ['report-weeks', teamId || 'default'],
-    queryFn: () => fetchAvailableWeeks(teamId),
+    queryKey: ['report-weeks'],
+    queryFn: fetchAvailableWeeks,
   })
 }

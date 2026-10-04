@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: "ProjectPilot AI — Engineering Project Intelligence",
   description: "AI-powered project management, explainable risk prediction, and team analytics",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon-proj.png",
     shortcut: "/favicon.ico",
     apple: "/favicon-proj.png",
   },
