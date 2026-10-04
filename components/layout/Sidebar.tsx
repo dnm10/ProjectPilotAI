@@ -56,8 +56,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation Items */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      {/* Navigation Items - Scrollbar hidden completely */}
+      <nav className="flex-1 py-2 px-2.5 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const isActive =
@@ -68,7 +68,7 @@ export default function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 relative ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-all duration-150 relative ${
                 isActive
                   ? 'bg-[#2F5496] text-white font-semibold shadow-inner'
                   : 'text-slate-300 hover:bg-white/10 hover:text-white'
