@@ -37,7 +37,8 @@ type BackendTeamMember = {
   | null
 }
 
-const TEAM_STORAGE_KEY = 'projectpilot_team_members'
+export const TEAM_STORAGE_KEY = 'projectpilot_team_members'
+export const TEAM_ID_STORAGE_KEY = 'projectpilot_active_team_id'
 
 const defaultTeamMembers: TeamMember[] = [
   {

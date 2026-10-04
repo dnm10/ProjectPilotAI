@@ -115,6 +115,11 @@ function generateDynamicFallbackTasks(
   }
 
   const mapped = taskItems.map((item, index) => {
+    const suggestedDev =
+      teamMembers.length > 0
+        ? teamMembers[index % teamMembers.length]?.name || ''
+        : ''
+
     return {
       id: `task-${Date.now()}-${index}`,
       title: item.length > 60 ? `${item.slice(0, 57)}...` : item,
@@ -123,7 +128,7 @@ function generateDynamicFallbackTasks(
       estimated_days: 2,
       is_included: true,
       assignee_id: '',
-      suggested_developer: '',
+      suggested_developer: suggestedDev,
       assigned_developer_name: '',
     }
   })
@@ -190,7 +195,8 @@ export async function generateTasksFromRequirements(
         ? data.tasks.slice(0, maxAllowedTasks)
         : data.tasks
 
-    const rawDraftTasks: DraftTask[] = tasksList.map((task: any, index: number) => {
+    const rawDraftTasks: DraftTask[] = tasksList.map(
+      (task: Partial<DraftTask> & Record<string, unknown>, index: number) => {
       const rawPoints = Number(task.story_points) || 3
       const rawDays =
         task.estimated_days !== undefined
