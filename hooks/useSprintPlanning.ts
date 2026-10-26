@@ -12,10 +12,36 @@ import type {
 
 import type { TeamMember } from '@/types'
 
+export interface GenerateTasksArgs {
+  requirements: string
+  teamMembers?: TeamMember[]
+  startDate?: string
+  endDate?: string
+  duration?: number | null
+}
+
 export function useGenerateTasks() {
-  return useMutation<DraftTask[], Error, string>({
-    mutationFn: (requirements: string) =>
-      generateTasksFromRequirements(requirements),
+  return useMutation<
+    DraftTask[],
+    Error,
+    GenerateTasksArgs | string
+  >({
+    mutationFn: (
+      args: GenerateTasksArgs | string
+    ) => {
+      if (typeof args === 'string') {
+        return generateTasksFromRequirements(args)
+      }
+      return generateTasksFromRequirements(
+        args.requirements,
+        args.teamMembers,
+        {
+          startDate: args.startDate,
+          endDate: args.endDate,
+          duration: args.duration,
+        }
+      )
+    },
   })
 }
 

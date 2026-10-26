@@ -26,18 +26,19 @@ type BackendTeamMember = {
   role_in_team: string | null
   joined_at: string | null
   profiles:
-    | {
-        id: string
-        full_name: string | null
-        email: string | null
-        role: string | null
-        github_username: string | null
-        jira_account_id: string | null
-      }
-    | null
+  | {
+    id: string
+    full_name: string | null
+    email: string | null
+    role: string | null
+    github_username: string | null
+    jira_account_id: string | null
+  }
+  | null
 }
 
-const TEAM_STORAGE_KEY = 'projectpilot_team_members'
+export const TEAM_STORAGE_KEY = 'projectpilot_team_members'
+export const TEAM_ID_STORAGE_KEY = 'projectpilot_active_team_id'
 
 const defaultTeamMembers: TeamMember[] = [
   {
