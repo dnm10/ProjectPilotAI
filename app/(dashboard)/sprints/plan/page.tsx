@@ -167,7 +167,7 @@ export default function SprintPlanningPage() {
           duration: sprintDuration,
         })
 
-      const updatedTasks = generatedTasks.map((task, index) => {
+      const updatedTasks = generatedTasks.map((task) => {
         const points = Number(task.story_points) || 3
         const days =
           task.estimated_days !== undefined

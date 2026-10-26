@@ -17,7 +17,7 @@ export default function DashboardLayout({
 
       {/* Main Content Area (Offset for 220px Sidebar & 64px Topbar) */}
       <main className="pl-[220px] pt-16 min-h-screen">
-        <div className="px-[18px] pt-2 pb-6 max-w-[1600px] mx-auto">{children}</div>
+        <div className="px-[18px] pt-8 pb-8 max-w-[1600px] mx-auto">{children}</div>
       </main>
     </div>
   )

@@ -1,15 +1,17 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import {
-  useDashboardSummary,
+  useDashboardStats,
+  useTopRisks,
+  useWorkloadSummary,
+  useRecentActivity,
 } from '@/hooks/useDashboard'
 import StatCard from '@/components/features/dashboard/StatCard'
 import TopRisksList from '@/components/features/dashboard/TopRisksList'
 import WorkloadBarList from '@/components/features/dashboard/WorkloadBarList'
 import ActivityFeed from '@/components/features/dashboard/ActivityFeed'
-import DashboardSkeleton from '@/components/features/dashboard/DashboardSkeleton'
 import {
   TrendingUp,
   AlertTriangle,
@@ -21,33 +23,10 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const [mounted, setMounted] = useState(false)
-  const [teamId, setTeamId] = useState<string | undefined>(undefined)
-
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('projectpilot_team_id')
-      if (stored) setTeamId(stored)
-    }
-  }, [])
-
-  const { data: summary, isLoading } = useDashboardSummary(teamId)
-  const stats = summary?.stats
-  const topRisks = summary?.topRisks || []
-  const workload = summary?.workload || []
-  const activity = summary?.activity || []
-  const teamName = summary?.teamName || 'Team'
-
-  const formattedDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
-
-  if (!mounted || (isLoading && !summary)) {
-    return <DashboardSkeleton />
-  }
+  const { data: stats } = useDashboardStats()
+  const { data: topRisks, isLoading: risksLoading } = useTopRisks()
+  const { data: workload, isLoading: workloadLoading } = useWorkloadSummary()
+  const { data: activity, isLoading: activityLoading } = useRecentActivity()
 
   return (
     <div className="relative space-y-6">
@@ -65,10 +44,10 @@ export default function DashboardPage() {
             </span>
           </div>
           <h1 className="text-[26px] font-extrabold text-[#0F172A] tracking-tight">
-            Good morning, {teamName}
+            Good morning, Team Zenith
           </h1>
           <p className="text-[13px] text-[#64748B] mt-0.5">
-            {formattedDate} &bull; {stats?.sprintName || 'Active Sprint'}, {stats?.sprintDayCount || 'Sprint Active'}
+            Wednesday, 19 August &bull; Sprint 3, Day 6 of 10
           </p>
         </div>
 
@@ -76,7 +55,6 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             href="/simulation"
-            prefetch={true}
             className="flex items-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all shadow-sm hover:shadow-md hover:scale-102"
           >
             <Play className="w-3.5 h-3.5 fill-white" />
@@ -84,7 +62,6 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/sprints/plan"
-            prefetch={true}
             className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0] px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all shadow-xs"
           >
             <CalendarDays className="w-3.5 h-3.5 text-[#4F46E5]" />
@@ -92,7 +69,6 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/chat"
-            prefetch={true}
             className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-[#0F172A] border border-[#E2E8F0] px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all shadow-xs"
           >
             <MessageSquare className="w-3.5 h-3.5 text-[#4F46E5]" />
@@ -105,34 +81,34 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Sprint Progress"
-          value={`${stats?.sprintProgress ?? 0}%`}
-          trend={stats?.sprintProgress && stats.sprintProgress > 0 ? `+${stats.sprintProgress}% velocity` : 'On Track'}
+          value={`${stats?.sprintProgress ?? 64}%`}
+          trend="+12% velocity"
           trendUp={true}
-          progressPercentage={stats?.sprintProgress ?? 0}
+          progressPercentage={stats?.sprintProgress ?? 64}
           icon={TrendingUp}
           iconBg="bg-gradient-to-br from-[#1F3864] to-[#4F46E5]"
         />
         <StatCard
           title="High-Risk Items"
-          value={stats?.highRiskCount ?? 0}
-          valueColor={stats?.highRiskCount && stats.highRiskCount > 0 ? "text-[#DC2626]" : "text-[#16A34A]"}
-          subtitle={stats?.highRiskCount && stats.highRiskCount > 0 ? "Requires attention" : "All clear"}
+          value={stats?.highRiskCount ?? 3}
+          valueColor="text-[#DC2626]"
+          subtitle="Requires attention"
           icon={AlertTriangle}
           iconBg="bg-gradient-to-br from-[#DC2626] to-[#EF4444]"
         />
         <StatCard
           title="Release Readiness"
-          value={`${stats?.releaseReadinessScore ?? 75}/100`}
+          value={`${stats?.releaseReadinessScore ?? 74}/100`}
           valueColor="text-[#D97706]"
-          trend="Calculated Live"
+          trend="81% on-time prob"
           trendUp={true}
           icon={Gauge}
           iconBg="bg-gradient-to-br from-[#D97706] to-[#F59E0B]"
         />
         <StatCard
           title="Unread Alerts"
-          value={stats?.unreadAlertsCount ?? 0}
-          subtitle={stats?.unreadAlertsCount && stats.unreadAlertsCount > 0 ? `${stats.unreadAlertsCount} pending review` : "Zero blockers"}
+          value={stats?.unreadAlertsCount ?? 5}
+          subtitle="2 lead-only signals"
           icon={Bell}
           iconBg="bg-gradient-to-br from-[#1F3864] to-[#2F5496]"
         />
@@ -141,15 +117,15 @@ export default function DashboardPage() {
       {/* Two-Column Middle Section: Top Risks (62%) + Team Workload (36%) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
-          <TopRisksList risks={topRisks} loading={isLoading} />
+          <TopRisksList risks={topRisks} loading={risksLoading} />
         </div>
         <div className="lg:col-span-4">
-          <WorkloadBarList workloads={workload} loading={isLoading} />
+          <WorkloadBarList workloads={workload} loading={workloadLoading} />
         </div>
       </div>
 
       {/* Full-Width Recent Activity Feed */}
-      <ActivityFeed activities={activity} loading={isLoading} />
+      <ActivityFeed activities={activity} loading={activityLoading} />
     </div>
   )
 }

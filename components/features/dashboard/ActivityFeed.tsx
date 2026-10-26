@@ -1,6 +1,5 @@
 import React from 'react'
 import { ActivityItem } from '@/lib/api/dashboard'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { Activity, Clock } from 'lucide-react'
 
 interface ActivityFeedProps {
@@ -9,12 +8,10 @@ interface ActivityFeedProps {
 }
 
 export default function ActivityFeed({ activities = [], loading }: ActivityFeedProps) {
-  if (loading && activities.length === 0) {
+  if (loading) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] p-6 shadow-xs space-y-3">
-        <Skeleton className="h-6 w-48 rounded-md" />
-        <Skeleton className="h-8 w-full rounded-lg" />
-        <Skeleton className="h-8 w-full rounded-lg" />
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] p-8 text-center text-sm text-[#64748B]">
+        Loading recent telemetry...
       </div>
     )
   }

@@ -121,19 +121,19 @@ export default function NotificationsPage() {
   ]
 
   return (
-    <div className="w-full space-y-6 pt-2">
+    <div className="w-full space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/70 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-[#E2E8F0] shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-[#E2E8F0] shadow-sm">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#1F3864] to-[#4F46E5] text-white flex items-center justify-center shadow-xs">
-              <Bell className="w-3.5 h-3.5" />
+            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1F3864] to-[#4F46E5] text-white flex items-center justify-center shadow-xs">
+              <Bell className="w-4 h-4" />
             </span>
-            <h1 className="text-[22px] md:text-[24px] font-extrabold text-[#0F172A] tracking-tight">
+            <h1 className="text-[26px] font-extrabold text-[#0F172A] tracking-tight">
               Notifications Center
             </h1>
           </div>
-          <p className="text-[12.5px] text-[#64748B] mt-0.5">
+          <p className="text-[13px] text-[#64748B] mt-0.5">
             Real-time project alerts, ML risk score changes, and workload warnings.
           </p>
         </div>

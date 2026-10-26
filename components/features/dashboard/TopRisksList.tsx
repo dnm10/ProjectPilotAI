@@ -2,7 +2,6 @@ import React from 'react'
 import Link from 'next/link'
 import { TopRiskItem } from '@/lib/api/dashboard'
 import { getRiskConfig } from '@/lib/riskColor'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { ShieldAlert, ArrowUpRight } from 'lucide-react'
 
 interface TopRisksListProps {
@@ -11,12 +10,10 @@ interface TopRisksListProps {
 }
 
 export default function TopRisksList({ risks = [], loading }: TopRisksListProps) {
-  if (loading && risks.length === 0) {
+  if (loading) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] p-6 shadow-xs space-y-3">
-        <Skeleton className="h-6 w-36 rounded-md" />
-        <Skeleton className="h-14 w-full rounded-xl" />
-        <Skeleton className="h-14 w-full rounded-xl" />
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] p-8 text-center text-sm text-[#64748B]">
+        Loading risk radar...
       </div>
     )
   }
