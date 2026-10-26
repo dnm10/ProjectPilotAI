@@ -134,9 +134,15 @@ export default function SprintBoardPage() {
           {currentSprint ? (
             <p className="text-[13px] text-[#64748B] mt-0.5">
               {currentSprint.name}
-              {currentSprint.start_date && currentSprint.end_date
-                ? ` • ${currentSprint.start_date} – ${currentSprint.end_date}`
-                : ''}
+              {(() => {
+                if (!currentSprint.start_date || !currentSprint.end_date) return ''
+                const s = new Date(currentSprint.start_date)
+                const e = new Date(currentSprint.end_date)
+                const dur = (!isNaN(s.getTime()) && !isNaN(e.getTime()) && e >= s)
+                  ? Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+                  : null
+                return ` • ${currentSprint.start_date} – ${currentSprint.end_date}${dur ? ` (${dur} days)` : ''}`
+              })()}
             </p>
           ) : (
             <div className="pt-1">

@@ -28,15 +28,84 @@ type BackendTeamMember = {
   role_in_team: string | null
   joined_at: string | null
   profiles:
-    | {
-        id: string
-        full_name: string | null
-        email: string | null
-        role: string | null
-        github_username: string | null
-        jira_account_id: string | null
-      }
-    | null
+  | {
+    id: string
+    full_name: string | null
+    email: string | null
+    role: string | null
+    github_username: string | null
+    jira_account_id: string | null
+  }
+  | null
+}
+
+export const TEAM_STORAGE_KEY = 'projectpilot_team_members'
+export const TEAM_ID_STORAGE_KEY = 'projectpilot_active_team_id'
+
+const defaultTeamMembers: TeamMember[] = [
+  {
+    id: 'user-zenith',
+    name: 'Team Zenith',
+    email: 'lead@projectpilot.ai',
+    initials: 'TZ',
+    role_in_team: 'lead',
+    current_workload_percentage: 65,
+  },
+  {
+    id: 'user-aditi',
+    name: 'Aditi Sharma',
+    email: 'aditi@projectpilot.ai',
+    initials: 'AS',
+    role_in_team: 'member',
+    current_workload_percentage: 85,
+  },
+  {
+    id: 'user-rohan',
+    name: 'Rohan Verma',
+    email: 'rohan@projectpilot.ai',
+    initials: 'RV',
+    role_in_team: 'member',
+    current_workload_percentage: 50,
+  },
+  {
+    id: 'user-meera',
+    name: 'Meera Iyer',
+    email: 'meera@projectpilot.ai',
+    initials: 'MI',
+    role_in_team: 'member',
+    current_workload_percentage: 70,
+  },
+  {
+    id: 'user-kabir',
+    name: 'Kabir Mehta',
+    email: 'kabir@projectpilot.ai',
+    initials: 'KM',
+    role_in_team: 'member',
+    current_workload_percentage: 92,
+  },
+]
+
+let inMemoryTeam: TeamMember[] = [...defaultTeamMembers]
+
+function loadTeam() {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(TEAM_STORAGE_KEY)
+      if (stored) inMemoryTeam = JSON.parse(stored)
+    } catch {
+      // fallback
+    }
+  }
+}
+
+function saveTeam() {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(TEAM_STORAGE_KEY, JSON.stringify(inMemoryTeam))
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export async function fetchTeams(): Promise<Team[]> {
